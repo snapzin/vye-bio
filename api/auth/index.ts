@@ -62,24 +62,38 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  const origin = req.headers?.origin as string | undefined;
-  setSecurityHeaders(res);
+  // Wrapper de erro global para capturar qualquer erro não tratado
+  try {
+    const origin = req.headers?.origin as string | undefined;
+    setSecurityHeaders(res);
 
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    if (handleCorsPreflight(origin, res)) {
-      return res.status(204).end();
+    // Handle CORS preflight
+    if (req.method === 'OPTIONS') {
+      if (handleCorsPreflight(origin, res)) {
+        return res.status(204).end();
+      }
+      return res.status(403).end();
     }
-    return res.status(403).end();
-  }
 
-  if (req.method !== 'POST') {
-    setCorsHeaders(origin, res);
-    res.setHeader('Content-Type', 'application/json');
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+    if (req.method !== 'POST') {
+      setCorsHeaders(origin, res);
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
 
-  const { action, email, password, username, token } = req.body || {};
+    // Parse body if it's a string
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        setCorsHeaders(origin, res);
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(400).json({ error: 'Invalid JSON body' });
+      }
+    }
+
+    const { action, email, password, username, token } = body || {};
 
   if (!action || !['login', 'register', 'session'].includes(action)) {
     setCorsHeaders(origin, res);
@@ -313,12 +327,24 @@ export default async function handler(
     }
 
   } catch (error: any) {
-    const statusCode = getStatusCode(error);
-    const errorResponse = handleError(error, res, () => setCorsHeaders(origin, res));
+    console.error('Auth API error:', error);
+    console.error('Error stack:', error?.stack);
     
+    const origin = req.headers?.origin as string | undefined;
     setCorsHeaders(origin, res);
     res.setHeader('Content-Type', 'application/json');
-    return res.status(statusCode).json(errorResponse);
+    
+    try {
+      const statusCode = getStatusCode(error);
+      const errorResponse = handleError(error, res, () => setCorsHeaders(origin, res));
+      return res.status(statusCode).json(errorResponse);
+    } catch (handleErrorException) {
+      // Fallback se handleError falhar
+      return res.status(500).json({ 
+        error: 'Internal server error',
+        message: error?.message || 'Unknown error'
+      });
+    }
   }
 }
 
