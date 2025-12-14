@@ -8,21 +8,37 @@ export default async function handler(
   req: any,
   res: any
 ) {
+  // Garantir headers CORS e Content-Type ANTES de qualquer coisa
+  try {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Content-Type', 'application/json');
+  } catch (e) {
+    // Ignorar erros de header
+  }
+
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    try {
+      return res.status(204).end();
+    } catch (e) {
+      return;
+    }
+  }
+
   // Garantir que sempre retorna JSON, mesmo se houver erro de importação
   try {
     return await executeHandler(req, res);
   } catch (error: any) {
     // Fallback final - sempre retorna JSON
     try {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      res.setHeader('Content-Type', 'application/json');
       return res.status(500).json({ 
         error: 'Internal server error'
       });
     } catch (e) {
       // Se tudo falhar, não fazer nada
+      return;
     }
   }
 }
@@ -49,8 +65,24 @@ async function executeHandler(
   let rateLimitConfigs: any;
 
   try {
+    // Importar crypto - pode ser default ou namespace
     const cryptoModule = await import('crypto');
-    crypto = cryptoModule.default || cryptoModule;
+    if (cryptoModule.default) {
+      crypto = cryptoModule.default;
+    } else if (cryptoModule.randomUUID) {
+      crypto = cryptoModule;
+    } else {
+      // Fallback: criar objeto com randomUUID
+      crypto = {
+        randomUUID: () => {
+          return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
+        }
+      };
+    }
     const jwtModule = await import('./jwt.js');
     createToken = jwtModule.createToken;
     verifyToken = jwtModule.verifyToken;
@@ -73,14 +105,23 @@ async function executeHandler(
     rateLimitConfigs = rateLimitModule.rateLimitConfigs;
   } catch (importError: any) {
     // Se houver erro de importação, retornar JSON de erro
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Content-Type', 'application/json');
-    return res.status(500).json({ 
-      error: 'Internal server error',
-      message: 'Erro ao carregar dependências'
-    });
+    try {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(500).json({ 
+        error: 'Internal server error',
+        message: 'Erro ao carregar dependências'
+      });
+    } catch (e) {
+      // Se falhar, tentar retornar JSON básico
+      try {
+        return res.status(500).json({ error: 'Internal server error' });
+      } catch (e2) {
+        return;
+      }
+    }
   }
 
   // Wrapper de erro global para capturar qualquer erro não tratado
