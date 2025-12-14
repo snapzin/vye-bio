@@ -3,6 +3,8 @@
  * Sistema de autenticação próprio sem Supabase Auth
  */
 
+import crypto from 'crypto';
+
 // Tenta pegar JWT_SECRET das variáveis de ambiente (com ou sem VITE_)
 const JWT_SECRET = process.env.JWT_SECRET || process.env.VITE_JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -64,7 +66,6 @@ export function verifyToken(token: string): JWTPayload | null {
 }
 
 function createSignature(data: string): string {
-  const crypto = require('crypto');
   return crypto
     .createHmac('sha256', JWT_SECRET)
     .update(data)

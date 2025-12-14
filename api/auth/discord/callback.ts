@@ -2,6 +2,8 @@
  * Vercel Serverless Function para processar o callback do OAuth2 do Discord
  */
 
+import crypto from 'crypto';
+
 interface VercelRequest {
   method?: string;
   query: {
@@ -71,7 +73,6 @@ function createJWTToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
   const base64Header = Buffer.from(JSON.stringify(header)).toString('base64url');
   const base64Payload = Buffer.from(JSON.stringify(jwtPayload)).toString('base64url');
 
-  const crypto = require('crypto');
   const signature = crypto
     .createHmac('sha256', JWT_SECRET)
     .update(`${base64Header}.${base64Payload}`)
@@ -218,7 +219,6 @@ export default async function handler(
         // Cria novo usuário diretamente na tabela profiles (sem auth.users)
         // Gera um ID único para o usuário (UUID v4)
         try {
-          const crypto = require('crypto');
           userId = crypto.randomUUID();
         } catch {
           // Fallback: gera UUID manualmente
