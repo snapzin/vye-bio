@@ -1,11 +1,23 @@
 /**
  * Vercel Serverless Function para login por email/senha
+ * ATUALIZADO: Removidos fallbacks inseguros, adicionadas validações e rate limiting
  */
 
-import crypto from 'crypto';
+import { createToken } from '../auth/jwt';
+import { isValidEmail } from '../utils/validation';
+import { setCorsHeaders, handleCorsPreflight } from '../utils/cors';
+import { handleError, getStatusCode } from '../utils/errors';
+import { setSecurityHeaders } from '../utils/securityHeaders';
+import { checkRateLimit, getRateLimitIdentifier, rateLimitConfigs } from '../middleware/rateLimit';
 
 interface VercelRequest {
   method?: string;
+  headers?: {
+    [key: string]: string | string[] | undefined;
+    origin?: string;
+    'x-forwarded-for'?: string;
+    'x-real-ip'?: string;
+  };
   body?: {
     email?: string;
     password?: string;
@@ -19,54 +31,15 @@ interface VercelResponse {
   end: () => void;
 }
 
-interface JWTPayload {
-  userId: string;
-  email?: string;
-  iat?: number;
-  exp?: number;
-}
-
-// Função para criar JWT token
-function createJWTToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-  const JWT_SECRET = process.env.JWT_SECRET || process.env.VITE_JWT_SECRET || 'your-secret-key-change-in-production';
-  
-  const header = {
-    alg: 'HS256',
-    typ: 'JWT',
-  };
-
-  const now = Math.floor(Date.now() / 1000);
-  const jwtPayload: JWTPayload = {
-    ...payload,
-    iat: now,
-    exp: now + (7 * 24 * 60 * 60), // 7 dias
-  };
-
-  const base64Header = Buffer.from(JSON.stringify(header)).toString('base64url');
-  const base64Payload = Buffer.from(JSON.stringify(jwtPayload)).toString('base64url');
-
-  const signature = crypto
-    .createHmac('sha256', JWT_SECRET)
-    .update(`${base64Header}.${base64Payload}`)
-    .digest('base64url');
-
-  return `${base64Header}.${base64Payload}.${signature}`;
-}
-
-// Função para verificar senha (bcrypt)
+// Função para verificar senha (bcrypt) - SEM FALLBACK INSEGURO
 async function verifyPassword(password: string, hash: string): Promise<boolean> {
   try {
-    // Usa bcrypt se disponível, senão usa comparação simples (não recomendado para produção)
-    const bcrypt = await import('bcryptjs').catch(() => null);
-    if (bcrypt) {
-      return await bcrypt.default.compare(password, hash);
-    }
-    // Fallback: apenas para desenvolvimento (NÃO USAR EM PRODUÇÃO)
-    console.warn('bcryptjs not available, using simple comparison (NOT SECURE)');
-    return password === hash;
+    const bcrypt = await import('bcryptjs');
+    return await bcrypt.default.compare(password, hash);
   } catch (error) {
     console.error('Password verification error:', error);
-    return false;
+    // Se bcryptjs não estiver disponível, FALHA explicitamente
+    throw new Error('bcryptjs não está disponível. Sistema de autenticação não pode funcionar sem esta dependência.');
   }
 }
 
@@ -74,27 +47,52 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  const origin = req.headers?.origin as string | undefined;
+  setSecurityHeaders(res);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    res.setHeader('Access-Control-Max-Age', '86400');
-    return res.status(204).end();
+    if (handleCorsPreflight(origin, res)) {
+      return res.status(204).end();
+    }
+    return res.status(403).end();
+  }
+
+  // Rate limiting
+  const identifier = getRateLimitIdentifier(req);
+  const rateLimitResult = checkRateLimit(identifier, rateLimitConfigs.auth);
+  if (!rateLimitResult.allowed) {
+    setCorsHeaders(origin, res);
+    res.setHeader('X-RateLimit-Limit', rateLimitConfigs.auth.maxRequests);
+    res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining);
+    res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000));
+    res.setHeader('Retry-After', Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000));
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(429).json({
+      error: 'Muitas tentativas de login. Tente novamente mais tarde.',
+      retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000),
+    });
   }
 
   if (req.method !== 'POST') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    setCorsHeaders(origin, res);
     res.setHeader('Content-Type', 'application/json');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { email, password } = req.body || {};
 
+  // Validação de entrada
   if (!email || !password) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    setCorsHeaders(origin, res);
     res.setHeader('Content-Type', 'application/json');
-    return res.status(400).json({ error: 'Email and password required' });
+    return res.status(400).json({ error: 'Email e senha são obrigatórios' });
+  }
+
+  if (!isValidEmail(email)) {
+    setCorsHeaders(origin, res);
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(400).json({ error: 'Email inválido' });
   }
 
   // Tenta pegar das variáveis de ambiente (prioriza sem VITE_ para serverless functions)
@@ -119,35 +117,38 @@ export default async function handler(
       .maybeSingle();
 
     if (profileError) {
-      console.error('Error fetching profile:', profileError);
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Content-Type', 'application/json');
-      return res.status(500).json({ error: 'Database error' });
+      throw new Error('Erro ao buscar perfil no banco de dados');
     }
 
     if (!profile || !profile.password_hash) {
-      res.setHeader('Access-Control-Allow-Origin', '*');
+      setCorsHeaders(origin, res);
       res.setHeader('Content-Type', 'application/json');
-      return res.status(401).json({ error: 'Invalid email or password' });
+      // Mesma mensagem para não revelar se email existe
+      return res.status(401).json({ error: 'Email ou senha inválidos' });
     }
 
     // Verifica a senha
     const isValid = await verifyPassword(password, profile.password_hash);
     
     if (!isValid) {
-      res.setHeader('Access-Control-Allow-Origin', '*');
+      setCorsHeaders(origin, res);
       res.setHeader('Content-Type', 'application/json');
-      return res.status(401).json({ error: 'Invalid email or password' });
+      // Mesma mensagem para não revelar se email existe
+      return res.status(401).json({ error: 'Email ou senha inválidos' });
     }
 
-    // Gera token JWT
-    const token = createJWTToken({
+    // Gera token JWT usando função centralizada
+    const token = createToken({
       userId: profile.user_id,
       email: profile.email,
     });
 
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    setCorsHeaders(origin, res);
     res.setHeader('Content-Type', 'application/json');
+    res.setHeader('X-RateLimit-Limit', rateLimitConfigs.auth.maxRequests);
+    res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining);
+    res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000));
+    
     return res.status(200).json({
       token,
       user: {
@@ -159,13 +160,12 @@ export default async function handler(
       },
     });
   } catch (error: any) {
-    console.error('Login error:', error);
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    const statusCode = getStatusCode(error);
+    const errorResponse = handleError(error, res, () => setCorsHeaders(origin, res));
+    
+    setCorsHeaders(origin, res);
     res.setHeader('Content-Type', 'application/json');
-    return res.status(500).json({ 
-      error: 'Internal server error',
-      details: error?.message || 'Unknown error'
-    });
+    return res.status(statusCode).json(errorResponse);
   }
 }
 

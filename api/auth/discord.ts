@@ -52,8 +52,17 @@ export default async function handler(
   // Gera um state aleatório para segurança
   const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   
-  // Armazena o state em um cookie (será verificado no callback)
-  res.setHeader('Set-Cookie', `discord_oauth_state=${state}; HttpOnly; SameSite=Lax; Path=/; Max-Age=600`);
+  // Armazena o state em um cookie seguro (será verificado no callback)
+  const isProduction = process.env.NODE_ENV === 'production';
+  const cookieOptions = [
+    `discord_oauth_state=${state}`,
+    'HttpOnly',
+    isProduction ? 'Secure' : '',
+    'SameSite=Lax',
+    'Path=/',
+    'Max-Age=600'
+  ].filter(Boolean).join('; ');
+  res.setHeader('Set-Cookie', cookieOptions);
 
   // Constrói a URL de autorização do Discord
   const authUrl = new URL('https://discord.com/api/oauth2/authorize');

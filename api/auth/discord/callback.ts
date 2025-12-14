@@ -3,6 +3,7 @@
  */
 
 import crypto from 'crypto';
+import { createToken } from '../jwt';
 
 interface VercelRequest {
   method?: string;
@@ -54,32 +55,6 @@ interface JWTPayload {
   exp?: number;
 }
 
-// Função para criar JWT token (implementada inline para evitar problemas de import no Vercel)
-function createJWTToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-  const JWT_SECRET = process.env.JWT_SECRET || process.env.VITE_JWT_SECRET || 'your-secret-key-change-in-production';
-  
-  const header = {
-    alg: 'HS256',
-    typ: 'JWT',
-  };
-
-  const now = Math.floor(Date.now() / 1000);
-  const jwtPayload: JWTPayload = {
-    ...payload,
-    iat: now,
-    exp: now + (7 * 24 * 60 * 60), // 7 dias
-  };
-
-  const base64Header = Buffer.from(JSON.stringify(header)).toString('base64url');
-  const base64Payload = Buffer.from(JSON.stringify(jwtPayload)).toString('base64url');
-
-  const signature = crypto
-    .createHmac('sha256', JWT_SECRET)
-    .update(`${base64Header}.${base64Payload}`)
-    .digest('base64url');
-
-  return `${base64Header}.${base64Payload}.${signature}`;
-}
 
 export default async function handler(
   req: VercelRequest,
@@ -277,9 +252,8 @@ export default async function handler(
         console.log('Profile created successfully:', profileData);
       }
 
-      // Gera um JWT token próprio (sem Supabase Auth)
-      // Usa função inline para evitar problemas de import no Vercel
-      const token = createJWTToken({
+      // Gera um JWT token próprio usando função centralizada
+      const token = createToken({
         userId,
         discordId: discordUser.id,
         email: discordUser.email || undefined,

@@ -573,9 +573,11 @@ const Profile = () => {
               href="/"
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              <div className="w-5 h-5 rounded bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-xs">b</span>
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="vye.bio" 
+                className="w-5 h-5 object-contain"
+              />
               vye.bio
             </a>
           </motion.div>

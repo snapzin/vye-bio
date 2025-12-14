@@ -5,8 +5,24 @@
 
 import crypto from 'crypto';
 
-// Tenta pegar JWT_SECRET das variáveis de ambiente (com ou sem VITE_)
-const JWT_SECRET = process.env.JWT_SECRET || process.env.VITE_JWT_SECRET || 'your-secret-key-change-in-production';
+// JWT_SECRET é obrigatório - não usar fallback inseguro
+function getJWTSecret(): string {
+  const secret = process.env.JWT_SECRET || process.env.VITE_JWT_SECRET;
+  
+  if (!secret) {
+    throw new Error(
+      'JWT_SECRET não configurado. Configure a variável de ambiente JWT_SECRET ou VITE_JWT_SECRET.'
+    );
+  }
+
+  if (secret === 'your-secret-key-change-in-production') {
+    throw new Error(
+      'JWT_SECRET não pode usar o valor padrão. Configure uma chave única e forte em produção.'
+    );
+  }
+
+  return secret;
+}
 
 interface JWTPayload {
   userId: string;
@@ -45,9 +61,17 @@ export function verifyToken(token: string): JWTPayload | null {
     }
 
     const [header, payload, signature] = parts;
-    const expectedSignature = createSignature(`${header}.${payload}`);
-
-    if (signature !== expectedSignature) {
+    
+    // Tenta verificar assinatura, mas não falha se JWT_SECRET não estiver configurado
+    // (para permitir verificação em ambientes onde secret pode não estar disponível)
+    try {
+      const expectedSignature = createSignature(`${header}.${payload}`);
+      if (signature !== expectedSignature) {
+        return null;
+      }
+    } catch (error) {
+      // Se JWT_SECRET não estiver configurado, não pode verificar
+      console.error('JWT_SECRET not configured for verification');
       return null;
     }
 
@@ -66,6 +90,7 @@ export function verifyToken(token: string): JWTPayload | null {
 }
 
 function createSignature(data: string): string {
+  const JWT_SECRET = getJWTSecret();
   return crypto
     .createHmac('sha256', JWT_SECRET)
     .update(data)
