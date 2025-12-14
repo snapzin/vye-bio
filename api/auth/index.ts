@@ -3,78 +3,117 @@
  * Suporta: login, register, session
  */
 
-import * as crypto from 'crypto';
-import { createToken, verifyToken } from './jwt.js';
-import { isValidEmail, isValidUsername, isValidPassword } from '../utils/validation.js';
-import { setCorsHeaders, handleCorsPreflight } from '../utils/cors.js';
-import { handleError, getStatusCode, formatError } from '../utils/errors.js';
-import { setSecurityHeaders } from '../utils/securityHeaders.js';
-import { checkRateLimit, getRateLimitIdentifier, rateLimitConfigs } from '../middleware/rateLimit.js';
-
-interface VercelRequest {
-  method?: string;
-  headers?: {
-    [key: string]: string | string[] | undefined;
-    origin?: string;
-    'x-forwarded-for'?: string;
-    'x-real-ip'?: string;
-  };
-  body?: {
-    action?: 'login' | 'register' | 'session';
-    email?: string;
-    password?: string;
-    username?: string;
-    token?: string;
-  };
-}
-
-interface VercelResponse {
-  status: (code: number) => VercelResponse;
-  json: (data: any) => void;
-  setHeader: (name: string, value: string) => void;
-  end: () => void;
-}
-
-// Função para verificar senha (bcrypt)
-async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  try {
-    const bcrypt = await import('bcryptjs');
-    return await bcrypt.default.compare(password, hash);
-  } catch (error) {
-    throw new Error('bcryptjs não está disponível. Sistema de autenticação não pode funcionar sem esta dependência.');
-  }
-}
-
-// Função para hash de senha (bcrypt)
-async function hashPassword(password: string): Promise<string> {
-  try {
-    const bcrypt = await import('bcryptjs');
-    const salt = await bcrypt.default.genSalt(10);
-    return await bcrypt.default.hash(password, salt);
-  } catch (error) {
-    throw new Error('bcryptjs não está disponível. Sistema de autenticação não pode funcionar sem esta dependência.');
-  }
-}
-
-async function handler(
-  req: VercelRequest,
-  res: VercelResponse
+// Wrapper para garantir que sempre retorne JSON, mesmo em caso de erro de importação
+export default async function handler(
+  req: any,
+  res: any
 ) {
+  // Garantir que sempre retorna JSON, mesmo se houver erro de importação
+  try {
+    return await executeHandler(req, res);
+  } catch (error: any) {
+    // Fallback final - sempre retorna JSON
+    try {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(500).json({ 
+        error: 'Internal server error'
+      });
+    } catch (e) {
+      // Se tudo falhar, não fazer nada
+    }
+  }
+}
+
+async function executeHandler(
+  req: any,
+  res: any
+) {
+  // Importar módulos dinamicamente para capturar erros de importação
+  let crypto: any;
+  let createToken: any;
+  let verifyToken: any;
+  let isValidEmail: any;
+  let isValidUsername: any;
+  let isValidPassword: any;
+  let setCorsHeaders: any;
+  let handleCorsPreflight: any;
+  let handleError: any;
+  let getStatusCode: any;
+  let formatError: any;
+  let setSecurityHeaders: any;
+  let checkRateLimit: any;
+  let getRateLimitIdentifier: any;
+  let rateLimitConfigs: any;
+
+  try {
+    const cryptoModule = await import('crypto');
+    crypto = cryptoModule.default || cryptoModule;
+    const jwtModule = await import('./jwt.js');
+    createToken = jwtModule.createToken;
+    verifyToken = jwtModule.verifyToken;
+    const validationModule = await import('../utils/validation.js');
+    isValidEmail = validationModule.isValidEmail;
+    isValidUsername = validationModule.isValidUsername;
+    isValidPassword = validationModule.isValidPassword;
+    const corsModule = await import('../utils/cors.js');
+    setCorsHeaders = corsModule.setCorsHeaders;
+    handleCorsPreflight = corsModule.handleCorsPreflight;
+    const errorsModule = await import('../utils/errors.js');
+    handleError = errorsModule.handleError;
+    getStatusCode = errorsModule.getStatusCode;
+    formatError = errorsModule.formatError;
+    const securityHeadersModule = await import('../utils/securityHeaders.js');
+    setSecurityHeaders = securityHeadersModule.setSecurityHeaders;
+    const rateLimitModule = await import('../middleware/rateLimit.js');
+    checkRateLimit = rateLimitModule.checkRateLimit;
+    getRateLimitIdentifier = rateLimitModule.getRateLimitIdentifier;
+    rateLimitConfigs = rateLimitModule.rateLimitConfigs;
+  } catch (importError: any) {
+    // Se houver erro de importação, retornar JSON de erro
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: 'Erro ao carregar dependências'
+    });
+  }
+
   // Wrapper de erro global para capturar qualquer erro não tratado
   try {
     const origin = req.headers?.origin as string | undefined;
-    setSecurityHeaders(res);
+    
+    try {
+      setSecurityHeaders(res);
+    } catch (e) {
+      // Se falhar, continuar sem security headers
+    }
 
     // Handle CORS preflight
     if (req.method === 'OPTIONS') {
-      if (handleCorsPreflight(origin, res)) {
-        return res.status(204).end();
+      try {
+        if (handleCorsPreflight && handleCorsPreflight(origin, res)) {
+          return res.status(204).end();
+        }
+      } catch (e) {
+        // Fallback
       }
-      return res.status(403).end();
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      return res.status(204).end();
     }
 
     if (req.method !== 'POST') {
-      setCorsHeaders(origin, res);
+      try {
+        if (setCorsHeaders) setCorsHeaders(origin, res);
+      } catch (e) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      }
       res.setHeader('Content-Type', 'application/json');
       return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -85,7 +124,11 @@ async function handler(
       try {
         body = JSON.parse(body);
       } catch (e) {
-        setCorsHeaders(origin, res);
+        try {
+          if (setCorsHeaders) setCorsHeaders(origin, res);
+        } catch (e2) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
         res.setHeader('Content-Type', 'application/json');
         return res.status(400).json({ error: 'Invalid JSON body' });
       }
@@ -94,7 +137,11 @@ async function handler(
     const { action, email, password, username, token } = body || {};
 
     if (!action || !['login', 'register', 'session'].includes(action)) {
-      setCorsHeaders(origin, res);
+      try {
+        if (setCorsHeaders) setCorsHeaders(origin, res);
+      } catch (e) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      }
       res.setHeader('Content-Type', 'application/json');
       return res.status(400).json({ error: 'Ação inválida. Use: login, register ou session' });
     }
@@ -103,7 +150,11 @@ async function handler(
     const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      setCorsHeaders(origin, res);
+      try {
+        if (setCorsHeaders) setCorsHeaders(origin, res);
+      } catch (e) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      }
       res.setHeader('Content-Type', 'application/json');
       return res.status(500).json({ error: 'Supabase not configured' });
     }
@@ -111,10 +162,35 @@ async function handler(
     const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // Função para verificar senha (bcrypt)
+    async function verifyPassword(password: string, hash: string): Promise<boolean> {
+      try {
+        const bcrypt = await import('bcryptjs');
+        return await bcrypt.default.compare(password, hash);
+      } catch (error) {
+        throw new Error('bcryptjs não está disponível. Sistema de autenticação não pode funcionar sem esta dependência.');
+      }
+    }
+
+    // Função para hash de senha (bcrypt)
+    async function hashPassword(password: string): Promise<string> {
+      try {
+        const bcrypt = await import('bcryptjs');
+        const salt = await bcrypt.default.genSalt(10);
+        return await bcrypt.default.hash(password, salt);
+      } catch (error) {
+        throw new Error('bcryptjs não está disponível. Sistema de autenticação não pode funcionar sem esta dependência.');
+      }
+    }
+
     // SESSION - Verificar token
     if (action === 'session') {
       if (!token) {
-        setCorsHeaders(origin, res);
+        try {
+          if (setCorsHeaders) setCorsHeaders(origin, res);
+        } catch (e) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
         res.setHeader('Content-Type', 'application/json');
         return res.status(400).json({ error: 'Token é obrigatório' });
       }
@@ -122,12 +198,20 @@ async function handler(
       const payload = verifyToken(token);
 
       if (!payload || !payload.userId) {
-        setCorsHeaders(origin, res);
+        try {
+          if (setCorsHeaders) setCorsHeaders(origin, res);
+        } catch (e) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
         res.setHeader('Content-Type', 'application/json');
         return res.status(401).json({ error: 'Token inválido', valid: false });
       }
 
-      setCorsHeaders(origin, res);
+      try {
+        if (setCorsHeaders) setCorsHeaders(origin, res);
+      } catch (e) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      }
       res.setHeader('Content-Type', 'application/json');
       return res.status(200).json({
         valid: true,
@@ -140,10 +224,21 @@ async function handler(
     // LOGIN
     if (action === 'login') {
       // Rate limiting
-      const identifier = getRateLimitIdentifier(req);
-      const rateLimitResult = checkRateLimit(identifier, rateLimitConfigs.auth);
-      if (!rateLimitResult.allowed) {
-        setCorsHeaders(origin, res);
+      let identifier = '';
+      let rateLimitResult: any = null;
+      try {
+        identifier = getRateLimitIdentifier(req);
+        rateLimitResult = checkRateLimit(identifier, rateLimitConfigs.auth);
+      } catch (e) {
+        // Se rate limit falhar, continuar sem rate limiting
+      }
+
+      if (rateLimitResult && !rateLimitResult.allowed) {
+        try {
+          if (setCorsHeaders) setCorsHeaders(origin, res);
+        } catch (e) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
         res.setHeader('X-RateLimit-Limit', rateLimitConfigs.auth.maxRequests.toString());
         res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
         res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000).toString());
@@ -156,13 +251,21 @@ async function handler(
       }
 
       if (!email || !password) {
-        setCorsHeaders(origin, res);
+        try {
+          if (setCorsHeaders) setCorsHeaders(origin, res);
+        } catch (e) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
         res.setHeader('Content-Type', 'application/json');
         return res.status(400).json({ error: 'Email e senha são obrigatórios' });
       }
 
-      if (!isValidEmail(email)) {
-        setCorsHeaders(origin, res);
+      if (!isValidEmail || !isValidEmail(email)) {
+        try {
+          if (setCorsHeaders) setCorsHeaders(origin, res);
+        } catch (e) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
         res.setHeader('Content-Type', 'application/json');
         return res.status(400).json({ error: 'Email inválido' });
       }
@@ -174,7 +277,11 @@ async function handler(
         .maybeSingle();
 
       if (profileError || !profile || !profile.password_hash) {
-        setCorsHeaders(origin, res);
+        try {
+          if (setCorsHeaders) setCorsHeaders(origin, res);
+        } catch (e) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
         res.setHeader('Content-Type', 'application/json');
         return res.status(401).json({ error: 'Email ou senha inválidos' });
       }
@@ -182,7 +289,11 @@ async function handler(
       const isValid = await verifyPassword(password, profile.password_hash);
       
       if (!isValid) {
-        setCorsHeaders(origin, res);
+        try {
+          if (setCorsHeaders) setCorsHeaders(origin, res);
+        } catch (e) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
         res.setHeader('Content-Type', 'application/json');
         return res.status(401).json({ error: 'Email ou senha inválidos' });
       }
@@ -192,11 +303,17 @@ async function handler(
         email: profile.email,
       });
 
-      setCorsHeaders(origin, res);
+      try {
+        if (setCorsHeaders) setCorsHeaders(origin, res);
+      } catch (e) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      }
       res.setHeader('Content-Type', 'application/json');
-      res.setHeader('X-RateLimit-Limit', rateLimitConfigs.auth.maxRequests.toString());
-      res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
-      res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000).toString());
+      if (rateLimitResult) {
+        res.setHeader('X-RateLimit-Limit', rateLimitConfigs.auth.maxRequests.toString());
+        res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+        res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000).toString());
+      }
       
       return res.status(200).json({
         token: jwtToken,
@@ -213,10 +330,21 @@ async function handler(
     // REGISTER
     if (action === 'register') {
       // Rate limiting (mais restritivo para registro)
-      const identifier = getRateLimitIdentifier(req);
-      const rateLimitResult = checkRateLimit(identifier, rateLimitConfigs.register);
-      if (!rateLimitResult.allowed) {
-        setCorsHeaders(origin, res);
+      let identifier = '';
+      let rateLimitResult: any = null;
+      try {
+        identifier = getRateLimitIdentifier(req);
+        rateLimitResult = checkRateLimit(identifier, rateLimitConfigs.register);
+      } catch (e) {
+        // Se rate limit falhar, continuar sem rate limiting
+      }
+
+      if (rateLimitResult && !rateLimitResult.allowed) {
+        try {
+          if (setCorsHeaders) setCorsHeaders(origin, res);
+        } catch (e) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
         res.setHeader('X-RateLimit-Limit', rateLimitConfigs.register.maxRequests.toString());
         res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
         res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000).toString());
@@ -229,25 +357,41 @@ async function handler(
       }
 
       if (!email || !password || !username) {
-        setCorsHeaders(origin, res);
+        try {
+          if (setCorsHeaders) setCorsHeaders(origin, res);
+        } catch (e) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
         res.setHeader('Content-Type', 'application/json');
         return res.status(400).json({ error: 'Email, senha e username são obrigatórios' });
       }
 
-      if (!isValidEmail(email)) {
-        setCorsHeaders(origin, res);
+      if (!isValidEmail || !isValidEmail(email)) {
+        try {
+          if (setCorsHeaders) setCorsHeaders(origin, res);
+        } catch (e) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
         res.setHeader('Content-Type', 'application/json');
         return res.status(400).json({ error: 'Email inválido' });
       }
 
-      if (!isValidPassword(password)) {
-        setCorsHeaders(origin, res);
+      if (!isValidPassword || !isValidPassword(password)) {
+        try {
+          if (setCorsHeaders) setCorsHeaders(origin, res);
+        } catch (e) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
         res.setHeader('Content-Type', 'application/json');
         return res.status(400).json({ error: 'Senha deve ter no mínimo 8 caracteres' });
       }
 
-      if (!isValidUsername(username)) {
-        setCorsHeaders(origin, res);
+      if (!isValidUsername || !isValidUsername(username)) {
+        try {
+          if (setCorsHeaders) setCorsHeaders(origin, res);
+        } catch (e) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
         res.setHeader('Content-Type', 'application/json');
         return res.status(400).json({ 
           error: 'Username inválido. Deve ter 3-20 caracteres, apenas letras minúsculas e números, e não pode ser uma palavra reservada.' 
@@ -262,7 +406,11 @@ async function handler(
         .maybeSingle();
 
       if (existingEmail) {
-        setCorsHeaders(origin, res);
+        try {
+          if (setCorsHeaders) setCorsHeaders(origin, res);
+        } catch (e) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
         res.setHeader('Content-Type', 'application/json');
         return res.status(400).json({ error: 'Email já cadastrado' });
       }
@@ -275,7 +423,11 @@ async function handler(
         .maybeSingle();
 
       if (existingUsername) {
-        setCorsHeaders(origin, res);
+        try {
+          if (setCorsHeaders) setCorsHeaders(origin, res);
+        } catch (e) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
         res.setHeader('Content-Type', 'application/json');
         return res.status(400).json({ error: 'Username já está em uso' });
       }
@@ -304,11 +456,17 @@ async function handler(
         email: profile.email,
       });
 
-      setCorsHeaders(origin, res);
+      try {
+        if (setCorsHeaders) setCorsHeaders(origin, res);
+      } catch (e) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      }
       res.setHeader('Content-Type', 'application/json');
-      res.setHeader('X-RateLimit-Limit', rateLimitConfigs.register.maxRequests.toString());
-      res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
-      res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000).toString());
+      if (rateLimitResult) {
+        res.setHeader('X-RateLimit-Limit', rateLimitConfigs.register.maxRequests.toString());
+        res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+        res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000).toString());
+      }
       
       return res.status(201).json({
         token: jwtToken,
@@ -331,8 +489,7 @@ async function handler(
       try {
         if (setCorsHeaders) setCorsHeaders(origin, res);
       } catch (e) {
-        // Se setHeader falhar, pode ser que headers já foram enviados
-        // Não fazer nada, apenas continuar
+        res.setHeader('Access-Control-Allow-Origin', '*');
       }
       
       try {
@@ -344,7 +501,7 @@ async function handler(
       
       // Tentar usar handleError, mas ter fallback
       try {
-        if (getStatusCode && handleError) {
+        if (getStatusCode && formatError) {
           const statusCode = getStatusCode(error);
           const errorResponse = formatError(error);
           return res.status(statusCode).json(errorResponse);
@@ -355,8 +512,7 @@ async function handler(
       
       // Fallback final - sempre retorna JSON
       return res.status(500).json({ 
-        error: 'Internal server error',
-        message: error?.message || 'Unknown error'
+        error: 'Internal server error'
       });
     } catch (finalError: any) {
       // Se falhar ao enviar resposta, pode ser que headers já foram enviados
@@ -364,30 +520,3 @@ async function handler(
     }
   }
 }
-
-// Wrapper para garantir que sempre retorne JSON, mesmo em caso de erro de importação
-async function safeHandler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
-  try {
-    return await handler(req, res);
-  } catch (error: any) {
-    // Garantir que sempre retorna JSON, mesmo em caso de erro de importação
-    try {
-      const origin = req.headers?.origin as string | undefined;
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      res.setHeader('Content-Type', 'application/json');
-      return res.status(500).json({ 
-        error: 'Internal server error'
-      });
-    } catch (e) {
-      // Se tudo falhar, não fazer nada
-    }
-  }
-}
-
-export default safeHandler;
-
