@@ -29,12 +29,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Verifica token JWT no localStorage
   const verifyToken = async (token: string): Promise<AppUser | null> => {
     try {
-      const response = await fetch('/api/auth/session', {
+      const response = await fetch('/api/auth', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ action: 'session', token }),
       });
 
       if (!response.ok) {
@@ -120,12 +120,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, username: string) => {
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch('/api/auth', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, username }),
+        body: JSON.stringify({ action: 'register', email, password, username }),
       });
 
       const data = await response.json();
@@ -159,12 +159,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/api/auth', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ action: 'login', email, password }),
       });
 
       const data = await response.json();

@@ -22,12 +22,12 @@ const AuthCallback = () => {
         localStorage.setItem('auth_token', token);
         
         // Verifica o token na API
-        const response = await fetch('/api/auth/session', {
+        const response = await fetch('/api/auth', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ token }),
+          body: JSON.stringify({ action: 'session', token }),
         });
 
         if (!response.ok) {

@@ -1,0 +1,5 @@
+# Ignorar arquivos que não são funções serverless
+api/middleware/**
+api/utils/**
+api/auth/jwt.ts
+
