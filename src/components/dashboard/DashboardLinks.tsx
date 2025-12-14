@@ -323,7 +323,7 @@ export function DashboardLinks() {
         <AnimatePresence mode="popLayout">
           {links.map((link, index) => (
             <motion.div key={link.id} className="p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl bg-card border border-border/50 hover:border-border transition-colors group" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -100 }} transition={{ delay: index * 0.05 }}>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto flex-1 sm:flex-initial min-w-0">
                   <div className="text-muted-foreground/50 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                     <GripVertical className="w-4 h-4" />
@@ -343,7 +343,7 @@ export function DashboardLinks() {
                     <p className="text-xs sm:text-sm text-muted-foreground truncate">{link.url}</p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-2 sm:gap-4">
+                <div className="flex items-center justify-end w-full sm:w-auto gap-2 sm:gap-4 ml-auto">
                   <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
                     <MousePointer className="w-3 h-3" />
                     <span>{link.clicks_count || 0}</span>
