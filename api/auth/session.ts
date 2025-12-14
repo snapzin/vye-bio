@@ -1,12 +1,14 @@
 /**
- * Vercel Serverless Function para criar uma sessão do Supabase
- * Usado após o OAuth do Discord para fazer login do usuário
+ * Vercel Serverless Function para verificar token JWT e retornar dados do usuário
+ * Usado após o OAuth do Discord para verificar a sessão
  */
+
+import crypto from 'crypto';
 
 interface VercelRequest {
   method?: string;
   body?: {
-    userId?: string;
+    token?: string;
   };
 }
 
@@ -15,6 +17,51 @@ interface VercelResponse {
   json: (data: any) => void;
   setHeader: (name: string, value: string) => void;
   end: () => void;
+}
+
+interface JWTPayload {
+  userId: string;
+  discordId?: string;
+  email?: string;
+  iat?: number;
+  exp?: number;
+}
+
+// Função para verificar JWT token (implementada inline para evitar problemas de import no Vercel)
+function verifyJWTToken(token: string): JWTPayload | null {
+  const JWT_SECRET = process.env.JWT_SECRET || process.env.VITE_JWT_SECRET || 'your-secret-key-change-in-production';
+  
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return null;
+    }
+
+    const [header, payload, signature] = parts;
+    
+    // Verifica a assinatura
+    const expectedSignature = crypto
+      .createHmac('sha256', JWT_SECRET)
+      .update(`${header}.${payload}`)
+      .digest('base64url');
+
+    if (signature !== expectedSignature) {
+      return null;
+    }
+
+    // Decodifica o payload
+    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString()) as JWTPayload;
+
+    // Verifica expiração
+    if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {
+      return null;
+    }
+
+    return decoded;
+  } catch (error) {
+    console.error('Token verification error:', error);
+    return null;
+  }
 }
 
 export default async function handler(
@@ -36,78 +83,41 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  const { token } = req.body || {};
 
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  if (!token) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', 'application/json');
-    return res.status(500).json({ error: 'Supabase not configured' });
-  }
-
-  const { userId } = req.body || {};
-
-  if (!userId) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Type', 'application/json');
-    return res.status(400).json({ error: 'User ID required' });
+    return res.status(400).json({ error: 'Token required' });
   }
 
   try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
+    // Verifica o token JWT
+    const payload = verifyJWTToken(token);
 
-    // Gera um token de acesso para o usuário usando o admin API
-    const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
-
-    if (userError || !user) {
+    if (!payload || !payload.userId) {
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Content-Type', 'application/json');
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(401).json({ error: 'Invalid token', valid: false });
     }
 
-    // Gera um link mágico e extrai o token
-    const email = user.email || `${user.id}@discord.local`;
-    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-      type: 'magiclink',
-      email: email,
-    });
-
-    if (linkError || !linkData?.properties?.action_link) {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Content-Type', 'application/json');
-      return res.status(500).json({ error: 'Failed to generate magic link' });
-    }
-
-    // Extrai os tokens do link mágico
-    const magicLink = linkData.properties.action_link;
-    const url = new URL(magicLink);
-    const tokenHash = url.searchParams.get('token_hash');
-    const token = url.searchParams.get('token');
-
-    // Retorna o token_hash para o frontend verificar
-    if (tokenHash || token) {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Content-Type', 'application/json');
-      return res.status(200).json({
-        tokenHash: tokenHash || token,
-        email: email,
-      });
-    }
-
+    // Retorna os dados do token verificado
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', 'application/json');
-    return res.status(500).json({ error: 'Failed to extract token from magic link' });
-  } catch (error) {
-    console.error('Session creation error:', error);
+    return res.status(200).json({
+      valid: true,
+      userId: payload.userId,
+      discordId: payload.discordId,
+      email: payload.email,
+    });
+  } catch (error: any) {
+    console.error('Session verification error:', error);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', 'application/json');
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      details: error?.message || 'Unknown error'
+    });
   }
 }
 
