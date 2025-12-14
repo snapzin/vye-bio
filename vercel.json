@@ -1,12 +1,8 @@
 {
-  "rewrites": [
-    {
-      "source": "/api/valorant/:path*",
-      "destination": "/api/valorant/:path*"
-    }
-  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "functions": {
-    "api/valorant/[...path].ts": {
+    "api/**/*.ts": {
       "maxDuration": 30
     }
   }

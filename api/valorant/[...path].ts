@@ -3,36 +3,58 @@
  * Resolve problemas de CORS em produção
  */
 
-// Declaração de tipo para process.env no ambiente do Vercel
-declare const process: {
-  env: {
-    [key: string]: string | undefined;
+// Tipos para Vercel Request/Response
+interface VercelRequest {
+  method?: string;
+  query: {
+    [key: string]: string | string[] | undefined;
+    path?: string | string[];
   };
-} | undefined;
+  body?: any;
+  url?: string;
+}
 
-export default async function handler(req: Request) {
+interface VercelResponse {
+  status: (code: number) => VercelResponse;
+  send: (data: string) => VercelResponse;
+  json: (data: any) => VercelResponse;
+  setHeader: (name: string, value: string) => void;
+  end: () => void;
+}
+
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse
+) {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Max-Age': '86400',
-      },
-    });
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    return res.status(204).end();
   }
 
-  const url = new URL(req.url);
-  const path = url.pathname.replace('/api/valorant', '');
+  // Extrai o path dos query params (Vercel passa o catch-all como query param)
+  // O path pode vir como array ou string
+  let pathString = '';
+  if (req.query.path) {
+    const path = req.query.path;
+    pathString = Array.isArray(path) ? path.join('/') : path;
+  } else if (req.url) {
+    // Fallback: extrai o path da URL se não estiver nos query params
+    const urlPath = new URL(req.url, 'http://localhost').pathname;
+    pathString = urlPath.replace('/api/valorant', '').replace(/^\//, '');
+  }
   
   // Constrói a URL da API do Valorant
-  const valorantApiUrl = `https://api.henrikdev.xyz/valorant${path}${url.search}`;
+  const queryString = req.url?.includes('?') ? req.url.split('?')[1] : '';
+  const valorantApiUrl = `https://api.henrikdev.xyz/valorant/${pathString}${queryString ? `?${queryString}` : ''}`;
+  
+  console.log('Proxy request:', { pathString, valorantApiUrl, method: req.method });
   
   // Pega a API key do ambiente (se configurada)
-  // No Vercel, variáveis de ambiente podem ser acessadas via process.env
-  const apiKey = process?.env?.VITE_HENRIKDEV_KEY || process?.env?.HENRIKDEV_KEY;
+  const apiKey = process.env.VITE_HENRIKDEV_KEY || process.env.HENRIKDEV_KEY;
   
   // Headers para a requisição
   const headers: HeadersInit = {
@@ -45,39 +67,31 @@ export default async function handler(req: Request) {
   
   try {
     const response = await fetch(valorantApiUrl, {
-      method: req.method,
+      method: req.method || 'GET',
       headers,
-      body: req.method !== 'GET' && req.method !== 'HEAD' ? await req.text() : undefined,
+      body: req.method !== 'GET' && req.method !== 'HEAD' ? JSON.stringify(req.body) : undefined,
     });
     
     const data = await response.text();
     
-    return new Response(data, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: {
-        'Content-Type': response.headers.get('Content-Type') || 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
-    });
+    // Define headers CORS
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Content-Type', response.headers.get('Content-Type') || 'application/json');
+    
+    return res.status(response.status).send(data);
   } catch (error) {
     console.error('Erro ao fazer proxy para API do Valorant:', error);
-    return new Response(
-      JSON.stringify({ 
-        status: 500, 
-        message: 'Erro ao conectar com a API do Valorant',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      }
-    );
+    
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'application/json');
+    
+    return res.status(500).json({ 
+      status: 500, 
+      message: 'Erro ao conectar com a API do Valorant',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 }
 
