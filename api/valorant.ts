@@ -102,11 +102,15 @@ export default async function handler(
   };
   
   // A API do HenrikDev usa Authorization header com a API key
+  // Pode ser necessário usar "Bearer {key}" ou apenas a key diretamente
   if (apiKey) {
-    headers['Authorization'] = apiKey;
+    // Tenta ambos os formatos: direto e com Bearer
+    // A maioria das APIs aceita ambos, mas vamos tentar direto primeiro
+    headers['Authorization'] = apiKey.startsWith('Bearer ') ? apiKey : apiKey;
     console.log('API Key encontrada e será enviada');
   } else {
-    console.warn('API Key não encontrada. A requisição pode falhar se a API exigir autenticação.');
+    console.warn('API Key não encontrada. Verifique as variáveis de ambiente no Vercel.');
+    console.warn('Variáveis disponíveis:', Object.keys(process.env).filter(k => k.includes('HENRIK') || k.includes('VALORANT')));
   }
   
   console.log('Proxy request:', { 
@@ -125,6 +129,32 @@ export default async function handler(
     });
     
     const data = await response.text();
+    
+    // Log para debug em caso de erro
+    if (!response.ok) {
+      console.error('Erro na API do Valorant:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: valorantApiUrl,
+        hasApiKey: !!apiKey,
+        responsePreview: data.substring(0, 200)
+      });
+      
+      // Se for 401, retorna uma mensagem mais útil
+      if (response.status === 401) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(401).json({
+          status: 401,
+          message: 'Não autorizado. Verifique se a API key está configurada corretamente no Vercel.',
+          error: 'A API do HenrikDev requer autenticação. Configure a variável de ambiente HENRIKDEV_KEY ou VITE_HENRIKDEV_KEY no Vercel.',
+          debug: {
+            hasApiKey: !!apiKey,
+            url: valorantApiUrl
+          }
+        });
+      }
+    }
     
     // Define headers CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
