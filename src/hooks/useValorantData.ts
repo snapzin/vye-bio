@@ -110,16 +110,11 @@ export function useValorantData(
     if (!user || !valorantName || !valorantTag || valorantPuuid) return;
 
     try {
-      // Usa proxy em desenvolvimento, API direta em produção (se configurado)
-      const isDev = import.meta.env.DEV;
-      const baseUrl = isDev 
-        ? '/api/valorant' 
-        : 'https://api.henrikdev.xyz';
+      // Sempre usa proxy para evitar problemas de CORS
+      const baseUrl = '/api/valorant';
       
-      // Em dev, o proxy já inclui /valorant no rewrite, então não precisa adicionar
-      const accountPath = isDev 
-        ? `/v2/account/${encodeURIComponent(valorantName)}/${encodeURIComponent(valorantTag)}`
-        : `/valorant/v2/account/${encodeURIComponent(valorantName)}/${encodeURIComponent(valorantTag)}`;
+      // O proxy já inclui /valorant no rewrite, então não precisa adicionar
+      const accountPath = `/v2/account/${encodeURIComponent(valorantName)}/${encodeURIComponent(valorantTag)}`;
       
       const accountUrl = `${baseUrl}${accountPath}`;
       const accountResponse = await fetch(accountUrl, {
@@ -185,17 +180,12 @@ export function useValorantData(
     lastFetchRef.current = Date.now();
 
     try {
-      // Usa proxy em desenvolvimento, API direta em produção (se configurado)
-      const isDev = import.meta.env.DEV;
-      const baseUrl = isDev 
-        ? '/api/valorant' 
-        : 'https://api.henrikdev.xyz';
+      // Sempre usa proxy para evitar problemas de CORS
+      const baseUrl = '/api/valorant';
       
       // v3 requer region, platform, name, tag
-      // Em dev, o proxy já inclui /valorant no rewrite, então não precisa adicionar
-      const apiPath = isDev 
-        ? `/v3/mmr/${region}/${platform}/${encodeURIComponent(valorantName)}/${encodeURIComponent(valorantTag)}`
-        : `/valorant/v3/mmr/${region}/${platform}/${encodeURIComponent(valorantName)}/${encodeURIComponent(valorantTag)}`;
+      // O proxy já inclui /valorant no rewrite, então não precisa adicionar
+      const apiPath = `/v3/mmr/${region}/${platform}/${encodeURIComponent(valorantName)}/${encodeURIComponent(valorantTag)}`;
       
       const url = `${baseUrl}${apiPath}`;
       const response = await fetch(url, {
@@ -220,14 +210,11 @@ export function useValorantData(
         // Busca o nível da conta se não estiver no MMR
         if (!data.account?.level) {
           try {
-            const isDev = import.meta.env.DEV;
-            const baseUrl = isDev 
-              ? '/api/valorant' 
-              : 'https://api.henrikdev.xyz';
+            // Sempre usa proxy para evitar problemas de CORS
+            const baseUrl = '/api/valorant';
             
-            const accountPath = isDev 
-              ? `/v2/account/${encodeURIComponent(valorantName)}/${encodeURIComponent(valorantTag)}`
-              : `/valorant/v2/account/${encodeURIComponent(valorantName)}/${encodeURIComponent(valorantTag)}`;
+            // O proxy já inclui /valorant no rewrite, então não precisa adicionar
+            const accountPath = `/v2/account/${encodeURIComponent(valorantName)}/${encodeURIComponent(valorantTag)}`;
             
             const accountUrl = `${baseUrl}${accountPath}`;
             const accountResponse = await fetch(accountUrl, {

@@ -155,7 +155,10 @@ export const misticPay = (() => {
   const clientSecret = import.meta.env.VITE_MISTICPAY_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    console.warn('MisticPay credentials not configured. Payment features will not work.');
+    // Apenas mostra aviso em desenvolvimento para não poluir o console em produção
+    if (import.meta.env.DEV) {
+      console.warn('MisticPay credentials not configured. Payment features will not work.');
+    }
     return null;
   }
 

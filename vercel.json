@@ -1,0 +1,14 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/valorant/:path*",
+      "destination": "/api/valorant/:path*"
+    }
+  ],
+  "functions": {
+    "api/valorant/[...path].ts": {
+      "maxDuration": 30
+    }
+  }
+}
+
