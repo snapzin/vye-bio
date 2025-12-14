@@ -107,10 +107,16 @@ const Register = () => {
         className="w-full max-w-sm"
       >
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xl">b</span>
-            </div>
+          <Link to="/" className="inline-flex items-center gap-2 mb-6 group">
+            <img
+              src="/logo.png"
+              alt="vye.bio"
+              className="h-12 w-12 rounded-lg object-cover transition-transform duration-300 ease-in-out group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/50"
+              draggable={false}
+            />
+            <span className="text-foreground font-semibold text-xl">
+              vye<span className="text-muted-foreground">.bio</span>
+            </span>
           </Link>
           <h1 className="text-2xl font-bold text-foreground mb-2">
             Crie sua página
