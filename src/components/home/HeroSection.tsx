@@ -80,12 +80,12 @@ export function HeroSection() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-5xl mx-auto px-4 text-center pt-24">
+      <div className="relative z-10 max-w-5xl mx-auto px-4 text-center pt-20 sm:pt-24">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="space-y-8"
+          className="space-y-6 sm:space-y-8"
         >
           {/* Badge */}
           <motion.div
@@ -93,14 +93,14 @@ export function HeroSection() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.4 }}
           >
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-foreground font-medium">
-              <Sparkles className="w-4 h-4" />
+            <span className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/5 border border-white/10 text-xs sm:text-sm text-foreground font-medium">
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               Feito para a comunidade do Discord
             </span>
           </motion.div>
 
           {/* Headline */}
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[0.95]">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-extrabold tracking-tight leading-[0.95] px-2">
             <span className="text-foreground">Sua vibe,</span>
             <br />
             <span className="bg-gradient-to-r from-foreground via-muted-foreground to-foreground bg-clip-text text-transparent">
@@ -109,7 +109,7 @@ export function HeroSection() {
           </h1>
 
           {/* Subheadline */}
-          <p className="max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground leading-relaxed">
+          <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-muted-foreground leading-relaxed px-4">
             Crie uma página de bio incrível com música, badges e fundos personalizados.
             Mostre ao mundo do Discord quem você realmente é.
           </p>
@@ -119,10 +119,10 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-lg mx-auto pt-4"
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-lg mx-auto pt-2 sm:pt-4 px-4"
           >
             <div className="relative flex-1 w-full">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+              <span className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-sm sm:text-base">
                 vye.bio/
               </span>
               <Input
@@ -130,17 +130,17 @@ export function HeroSection() {
                 placeholder="seunome"
                 value={username}
                 onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""))}
-                  className="pl-[90px] pr-4 h-14 text-lg bg-secondary/50 border-border/50 focus:border-border"
+                  className="pl-[75px] sm:pl-[90px] pr-4 h-12 sm:h-14 text-base sm:text-lg bg-secondary/50 border-border/50 focus:border-border"
                 onKeyDown={(e) => e.key === "Enter" && handleClaim()}
               />
             </div>
             <Button
               size="lg"
               onClick={handleClaim}
-              className="w-full sm:w-auto h-14 px-8 gap-2 bg-primary text-primary-foreground hover:opacity-90 font-semibold"
+              className="w-full sm:w-auto h-12 sm:h-14 px-6 sm:px-8 gap-2 bg-primary text-primary-foreground hover:opacity-90 font-semibold text-sm sm:text-base"
             >
               Garantir
-              <ArrowRight className="w-5 h-5" />
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
           </motion.div>
 
@@ -149,15 +149,15 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.8 }}
-            className="flex flex-col items-center gap-4 pt-8"
+            className="flex flex-col items-center gap-3 sm:gap-4 pt-6 sm:pt-8"
           >
-            <div className="flex -space-x-3">
+            <div className="flex -space-x-2 sm:-space-x-3">
               {avatarSlots.map((_, i) => {
                 const item = socialAvatars[i];
                 return (
                   <div
                     key={i}
-                    className="w-12 h-12 rounded-full bg-secondary ring-2 ring-background flex items-center justify-center overflow-hidden"
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-secondary ring-2 ring-background flex items-center justify-center overflow-hidden"
                     title={item?.alt}
                   >
                     {item?.avatarUrl ? (
@@ -168,16 +168,16 @@ export function HeroSection() {
                         loading="lazy"
                       />
                     ) : (
-                      <User className="w-5 h-5 text-muted-foreground" />
+                      <User className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                     )}
                   </div>
                 );
               })}
-              <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground ring-2 ring-background flex items-center justify-center text-sm font-bold">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary text-primary-foreground ring-2 ring-background flex items-center justify-center text-xs sm:text-sm font-bold">
                 +10k
               </div>
             </div>
-            <p className="text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground px-4">
               Junte-se a <span className="text-foreground font-medium">10.000+</span> usuários do Discord
             </p>
           </motion.div>

@@ -3,10 +3,13 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
+import { Menu, X } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export function Header() {
   const { user, loading } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -17,6 +20,32 @@ export function Header() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const navLinks = (
+    <>
+      <Link 
+        to="/features" 
+        className="text-white/80 hover:text-white text-sm px-3 py-2 rounded-lg will-change-transform transition-[color,background-color,transform] duration-200 ease-in-out hover:bg-white/10 hover:scale-105"
+        onClick={() => setIsMobileMenuOpen(false)}
+      >
+        Recursos
+      </Link>
+      <Link 
+        to="/discover" 
+        className="text-white/80 hover:text-white text-sm px-3 py-2 rounded-lg will-change-transform transition-[color,background-color,transform] duration-200 ease-in-out hover:bg-white/10 hover:scale-105"
+        onClick={() => setIsMobileMenuOpen(false)}
+      >
+        Descobrir
+      </Link>
+      <Link 
+        to="/premium" 
+        className="text-white/80 hover:text-white text-sm px-3 py-2 rounded-lg will-change-transform transition-[color,background-color,transform] duration-200 ease-in-out hover:bg-white/10 hover:scale-105"
+        onClick={() => setIsMobileMenuOpen(false)}
+      >
+        Premium
+      </Link>
+    </>
+  );
 
   return (
     <motion.header
@@ -39,35 +68,66 @@ export function Header() {
               className="h-8 w-8 rounded-lg object-cover transition-transform duration-300 ease-in-out group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/50"
               draggable={false}
             />
-            <span className={`text-white font-semibold text-lg tracking-tight transition-all duration-300 ease-in-out ${isScrolled ? 'hidden' : ''}`}>
+            <span className={`text-white font-semibold text-lg tracking-tight transition-all duration-300 ease-in-out ${isScrolled ? 'hidden sm:inline' : ''}`}>
               vye<span className="text-muted-foreground">.bio</span>
             </span>
           </Link>
 
           {/* Nav Links - Desktop */}
           <div className="hidden md:flex items-center gap-2">
-            <Link 
-              to="/features" 
-              className="text-white/80 hover:text-white text-sm px-3 py-2 rounded-lg will-change-transform transition-[color,background-color,transform] duration-200 ease-in-out hover:bg-white/10 hover:scale-105"
-            >
-              Recursos
-            </Link>
-            <Link 
-              to="/discover" 
-              className="text-white/80 hover:text-white text-sm px-3 py-2 rounded-lg will-change-transform transition-[color,background-color,transform] duration-200 ease-in-out hover:bg-white/10 hover:scale-105"
-            >
-              Descobrir
-            </Link>
-            <Link 
-              to="/premium" 
-              className="text-white/80 hover:text-white text-sm px-3 py-2 rounded-lg will-change-transform transition-[color,background-color,transform] duration-200 ease-in-out hover:bg-white/10 hover:scale-105"
-            >
-              Premium
-            </Link>
+            {navLinks}
           </div>
 
-          {/* Auth Buttons */}
-          <div className="flex items-center gap-3 flex-shrink-0">
+          {/* Mobile Menu Button */}
+          <div className="md:hidden flex items-center gap-2">
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white/80 hover:text-white hover:bg-white/10"
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-background border-border">
+                <div className="flex flex-col gap-4 mt-8">
+                  <div className="flex flex-col gap-2">
+                    {navLinks}
+                  </div>
+                  <div className="border-t border-border pt-4">
+                    {!loading && (
+                      <>
+                        {user ? (
+                          <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+                            <Button variant="default" className="w-full">
+                              Dashboard
+                            </Button>
+                          </Link>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                              <Button variant="ghost" className="w-full">
+                                Entrar
+                              </Button>
+                            </Link>
+                            <Link to="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                              <Button variant="default" className="w-full">
+                                Começar
+                              </Button>
+                            </Link>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          {/* Auth Buttons - Desktop */}
+          <div className="hidden md:flex items-center gap-3 flex-shrink-0">
             {!loading && (
               <>
                 {user ? (

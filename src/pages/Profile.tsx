@@ -53,7 +53,7 @@ function FloatingMusicPlayer({
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
         onClick={() => setIsExpanded(!isExpanded)}
-        className="fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full bg-primary text-primary-foreground shadow-2xl hover:scale-110 transition-transform flex items-center justify-center"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary text-primary-foreground shadow-2xl hover:scale-110 transition-transform flex items-center justify-center"
       >
         {profile.music_image_url ? (
           <img 
@@ -81,7 +81,7 @@ function FloatingMusicPlayer({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.5 }}
-            className="fixed bottom-24 right-6 z-50 w-80 rounded-2xl bg-card/95 backdrop-blur-xl border border-border/50 shadow-2xl overflow-hidden"
+            className="fixed bottom-20 right-4 sm:bottom-24 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-2xl bg-card/95 backdrop-blur-xl border border-border/50 shadow-2xl overflow-hidden"
           >
             <div className="p-4">
               {/* Header */}
@@ -303,7 +303,7 @@ const Profile = () => {
       )}
 
       {/* Content */}
-      <div className="relative z-10 w-full flex items-center justify-center px-4 py-12 md:py-20 flex-1">
+      <div className="relative z-10 w-full flex items-center justify-center px-4 py-8 sm:py-12 md:py-20 flex-1">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -312,8 +312,8 @@ const Profile = () => {
             profile.card_direction === 'left' ? 'text-left' : 'text-center'
           } ${
             profile.card_style === 'banner' 
-              ? 'pt-0 pb-6 md:pb-8 px-6 md:px-8' 
-              : 'p-6 md:p-8'
+              ? 'pt-0 pb-4 sm:pb-6 md:pb-8 px-4 sm:px-6 md:px-8' 
+              : 'p-4 sm:p-6 md:p-8'
           }`}
           style={{
             backgroundColor: profile.card_color || '#000000',
@@ -324,17 +324,17 @@ const Profile = () => {
         >
           {/* Banner Header - Only for banner style */}
           {profile.card_style === 'banner' && (
-            <div className="h-32 md:h-40 rounded-t-2xl mb-6 -mx-6 md:-mx-8 -mt-6 md:-mt-8 bg-gradient-to-br from-accent/20 to-purple-500/20" />
+            <div className="h-24 sm:h-32 md:h-40 rounded-t-2xl mb-4 sm:mb-6 -mx-4 sm:-mx-6 md:-mx-8 -mt-4 sm:-mt-6 md:-mt-8 bg-gradient-to-br from-accent/20 to-purple-500/20" />
           )}
           {/* Avatar */}
-          <div className="relative inline-block mb-6">
+          <div className="relative inline-block mb-4 sm:mb-6">
             <motion.img
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.4 }}
               src={profile.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile.display_name || profile.username}`}
               alt={profile.display_name || profile.username}
-              className={`w-28 h-28 object-cover ring-4 ring-background shadow-2xl ${
+              className={`w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 object-cover ring-4 ring-background shadow-2xl ${
                 profile.avatar_shape === 'circle' 
                   ? 'rounded-full' 
                   : profile.avatar_shape === 'square'
@@ -343,35 +343,35 @@ const Profile = () => {
               }`}
             />
             {profile.is_online && (
-              <span className="absolute bottom-2 right-2 w-5 h-5 bg-green-500 rounded-full ring-4 ring-background" />
+              <span className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 w-4 h-4 sm:w-5 sm:h-5 bg-green-500 rounded-full ring-4 ring-background" />
             )}
           </div>
 
           {/* Name & Username */}
-          <h1 className="text-2xl font-bold text-foreground mb-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-1">
             {profile.display_name || profile.username}
           </h1>
           
           {/* Location */}
           {profile.location && (
-            <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mb-4">
-              <MapPin className="w-3.5 h-3.5" />
+            <div className="flex items-center justify-center gap-1 text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
+              <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               <span>{profile.location}</span>
             </div>
           )}
 
           {/* Bio */}
           {profile.bio && (
-            <p className="text-muted-foreground max-w-sm mx-auto mb-6">
+            <p className="text-sm sm:text-base text-muted-foreground max-w-sm mx-auto mb-4 sm:mb-6 px-2">
               {profile.bio}
             </p>
           )}
 
           {/* Badges */}
           {badges.length > 0 && (
-            <div className="pt-3 mb-8 w-full grid place-items-center text-center">
-              <div className="inline-flex items-center justify-center max-w-full rounded-2xl bg-secondary/40 border border-border/50 backdrop-blur-sm px-4 py-2">
-                <div className="flex items-center justify-center flex-wrap gap-3">
+            <div className="pt-2 sm:pt-3 mb-6 sm:mb-8 w-full grid place-items-center text-center">
+              <div className="inline-flex items-center justify-center max-w-full rounded-2xl bg-secondary/40 border border-border/50 backdrop-blur-sm px-3 sm:px-4 py-1.5 sm:py-2">
+                <div className="flex items-center justify-center flex-wrap gap-2 sm:gap-3">
                   {badges.map((userBadge, index) => (
                     <motion.div
                       key={userBadge.id}
@@ -380,12 +380,12 @@ const Profile = () => {
                       transition={{ type: "spring", stiffness: 500, damping: 25, delay: index * 0.05 }}
                       className="group relative"
                     >
-                      <span className="cursor-pointer inline-flex items-center justify-center leading-none w-6 h-6">
+                      <span className="cursor-pointer inline-flex items-center justify-center leading-none w-5 h-5 sm:w-6 sm:h-6">
                         <BadgeIcon 
                           badgeName={userBadge.badge?.name} 
                           icon={userBadge.badge?.icon} 
-                          className="w-6 h-6 text-foreground" 
-                          size={24} 
+                          className="w-5 h-5 sm:w-6 sm:h-6 text-foreground" 
+                          size={20} 
                           offsetY={3}
                         />
                       </span>
@@ -445,7 +445,7 @@ const Profile = () => {
                   },
                 },
               }}
-              className={(profile.link_style || 'cards') === 'buttons' ? "flex flex-wrap gap-2 justify-center" : "space-y-3"}
+              className={(profile.link_style || 'cards') === 'buttons' ? "flex flex-wrap gap-2 justify-center" : "space-y-2 sm:space-y-3"}
             >
               {links.filter(l => l.is_visible).map((link, index) => {
                 const { Icon, color, isCustom } = getSocialIcon(link.url, link.icon);
@@ -472,19 +472,19 @@ const Profile = () => {
                         },
                       }}
                       className={`group flex items-center justify-center rounded-lg bg-secondary/50 hover:bg-secondary border border-border/50 hover:border-border transition-colors duration-200 ${
-                        showText ? 'gap-2 px-4 py-2' : 'p-3'
+                        showText ? 'gap-2 px-3 sm:px-4 py-1.5 sm:py-2' : 'p-2 sm:p-3'
                       }`}
                       title={!showText ? link.title : undefined}
                     >
                       {isCustom && link.icon ? (
-                        <span className={showText ? "text-base" : "text-xl"}>{link.icon}</span>
+                        <span className={showText ? "text-sm sm:text-base" : "text-lg sm:text-xl"}>{link.icon}</span>
                       ) : (
                         <span style={iconColor ? { color: iconColor } : undefined}>
-                          <Icon className={showText ? "w-4 h-4" : "w-5 h-5"} />
+                          <Icon className={showText ? "w-3.5 h-3.5 sm:w-4 sm:h-4" : "w-4 h-4 sm:w-5 sm:h-5"} />
                         </span>
                       )}
                       {showText && (
-                        <span className="font-medium text-sm text-foreground">{link.title}</span>
+                        <span className="font-medium text-xs sm:text-sm text-foreground">{link.title}</span>
                       )}
                     </motion.a>
                   );
@@ -505,19 +505,19 @@ const Profile = () => {
                         transition: { type: "spring", stiffness: 520, damping: 40, mass: 0.65 },
                       },
                     }}
-                    className="group flex items-center justify-between p-4 rounded-2xl bg-secondary/50 hover:bg-secondary transition-colors duration-200"
+                    className="group flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-secondary/50 hover:bg-secondary transition-colors duration-200"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                       {isCustom && link.icon ? (
-                        <span className="text-lg">{link.icon}</span>
+                        <span className="text-base sm:text-lg flex-shrink-0">{link.icon}</span>
                       ) : (
-                        <span style={iconColor ? { color: iconColor } : undefined}>
-                          <Icon className="w-5 h-5" />
+                        <span style={iconColor ? { color: iconColor } : undefined} className="flex-shrink-0">
+                          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                         </span>
                       )}
-                      <span className="font-medium text-foreground">{link.title}</span>
+                      <span className="font-medium text-sm sm:text-base text-foreground truncate">{link.title}</span>
                     </div>
-                    <ExternalLink className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2" />
                   </motion.a>
                 );
               })}

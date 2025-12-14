@@ -94,10 +94,10 @@ const Register = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Link 
         to="/"
-        className="absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+        className="absolute top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-1.5 sm:gap-2 text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span className="text-sm">Voltar</span>
+        <span className="text-xs sm:text-sm">Voltar</span>
       </Link>
 
       <motion.div

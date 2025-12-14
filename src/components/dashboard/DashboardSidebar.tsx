@@ -73,7 +73,7 @@ export function DashboardSidebar({ activeTab, onTabChange, username, isAdmin = f
   });
 
   return (
-    <aside className="w-56 flex-shrink-0 h-screen sticky top-0 flex flex-col border-r border-border/50 bg-background">
+    <aside className="w-full h-full flex flex-col border-r border-border/50 bg-background">
       {/* Logo */}
       <div className="p-4 border-b border-border/50">
         <Link to="/" className="flex items-center gap-2 group">

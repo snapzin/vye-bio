@@ -17,6 +17,8 @@ import { DashboardSettings } from "@/components/dashboard/DashboardSettings";
 import { DashboardAdmin } from "@/components/dashboard/DashboardAdmin";
 import { DashboardNotifications } from "@/components/dashboard/DashboardNotifications";
 import { DashboardPremium } from "@/components/dashboard/DashboardPremium";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Tab = 'dashboard' | 'appearance' | 'links' | 'badges' | 'music' | 'widget' | 'settings' | 'admin' | 'notifications' | 'premium';
 
@@ -38,6 +40,8 @@ const Dashboard = () => {
   const { profile, loading: profileLoading } = useProfile();
   const { setPreviewUserId } = usePreview();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Restore active tab from localStorage
   const getInitialTab = (): Tab => {
@@ -50,6 +54,13 @@ const Dashboard = () => {
   
   const [activeTab, setActiveTab] = useState<Tab>(getInitialTab());
   const hasNavigatedRef = useRef(false);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab as Tab);
+    if (isMobile) {
+      setIsMobileMenuOpen(false);
+    }
+  };
 
   // Save active tab to localStorage when it changes
   useEffect(() => {
@@ -145,25 +156,39 @@ const Dashboard = () => {
     }
   };
 
+  const sidebarContent = (
+    <DashboardSidebar 
+      activeTab={activeTab} 
+      onTabChange={handleTabChange} 
+      username={profile.username}
+      isAdmin={profile.is_admin === true}
+    />
+  );
+
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <DashboardSidebar 
-        activeTab={activeTab} 
-        onTabChange={(tab) => setActiveTab(tab as Tab)} 
-        username={profile.username}
-        isAdmin={profile.is_admin === true}
-      />
+      {/* Sidebar - Desktop */}
+      <div className="hidden md:block">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile Menu Sheet */}
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetContent side="left" className="w-[280px] sm:w-[320px] p-0">
+          {sidebarContent}
+        </SheetContent>
+      </Sheet>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         <DashboardHeader 
           title={tabTitles[activeTab].title} 
-          subtitle={tabTitles[activeTab].subtitle} 
+          subtitle={tabTitles[activeTab].subtitle}
+          onMenuClick={() => setIsMobileMenuOpen(true)}
         />
 
         <main className="flex-1 overflow-y-auto">
-          <div className="p-6 w-full">
+          <div className="p-4 sm:p-6 w-full">
             <motion.div
               key={activeTab}
               initial={{ opacity: 0, y: 10 }}
@@ -176,7 +201,7 @@ const Dashboard = () => {
         </main>
       </div>
 
-      {/* Live Preview */}
+      {/* Live Preview - Desktop Only */}
       {profile && <DashboardPreview />}
     </div>
   );

@@ -9,9 +9,9 @@ const stats = [
 
 export function StatsSection() {
   return (
-    <section className="py-16 px-4 border-y border-border/50">
+    <section className="py-12 sm:py-16 px-4 border-y border-border/50">
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -21,10 +21,10 @@ export function StatsSection() {
               transition={{ delay: index * 0.1 }}
               className="text-center"
             >
-              <p className="text-3xl md:text-4xl font-bold text-foreground mb-1">
+              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1">
                 {stat.value}
               </p>
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">{stat.label}</p>
             </motion.div>
           ))}
         </div>
