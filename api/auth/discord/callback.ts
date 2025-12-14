@@ -139,10 +139,19 @@ export default async function handler(
 
     const discordUser: DiscordUser = await userResponse.json();
 
+    console.log('Discord user fetched:', { id: discordUser.id, username: discordUser.username });
+
     try {
       // Conecta ao Supabase apenas como banco de dados (sem auth)
       const { createClient } = await import('@supabase/supabase-js');
+      
+      if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+        console.error('Supabase credentials missing:', { hasUrl: !!SUPABASE_URL, hasKey: !!SUPABASE_ANON_KEY });
+        return res.redirect('/?error=supabase_not_configured');
+      }
+      
       const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      console.log('Supabase client created');
       
       // Busca usuário existente pelo discord_user_id
       const { data: existingProfile } = await supabase
@@ -183,7 +192,6 @@ export default async function handler(
             return v.toString(16);
           });
         }
-        const email = discordUser.email || `${discordUser.id}@discord.local`;
         username = (discordUser.global_name || discordUser.username || `user_${discordUser.id.substring(0, 8)}`)
           .toLowerCase()
           .replace(/[^a-z0-9]/g, '');
@@ -204,7 +212,8 @@ export default async function handler(
         }
 
         // Cria o perfil diretamente
-        const { error: profileError } = await supabase
+        console.log('Creating profile:', { userId, username: finalUsername });
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .insert({
             user_id: userId,
@@ -214,32 +223,55 @@ export default async function handler(
               ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
               : null,
             discord_user_id: discordUser.id,
-            email: email,
-          });
+          })
+          .select()
+          .single();
 
         if (profileError) {
           console.error('Error creating profile:', profileError);
-          return res.redirect('/?error=profile_creation_failed');
+          console.error('Profile error details:', {
+            message: profileError.message,
+            code: profileError.code,
+            details: profileError.details,
+            hint: profileError.hint,
+          });
+          return res.redirect(`/?error=profile_creation_failed&details=${encodeURIComponent(profileError.message || 'Unknown error')}`);
         }
+        
+        console.log('Profile created successfully:', profileData);
       }
 
       // Gera um JWT token próprio (sem Supabase Auth)
-      const { createToken } = await import('./jwt');
-      const token = createToken({
-        userId,
-        discordId: discordUser.id,
-        email: discordUser.email || undefined,
-      });
+      try {
+        // Importa o módulo JWT (caminho relativo a partir de api/auth/discord/)
+        const jwtModule = await import('../jwt');
+        const token = jwtModule.createToken({
+          userId,
+          discordId: discordUser.id,
+          email: discordUser.email || undefined,
+        });
 
-      // Redireciona para o frontend com o token JWT
-      return res.redirect(`/auth/callback?token=${token}&discord_id=${discordUser.id}`);
-    } catch (error) {
-      console.error('OAuth callback error:', error);
-      return res.redirect('/?error=oauth_error');
+        // Redireciona para o frontend com o token JWT
+        return res.redirect(`/auth/callback?token=${encodeURIComponent(token)}&discord_id=${discordUser.id}`);
+      } catch (jwtError: any) {
+        console.error('JWT creation error:', jwtError);
+        console.error('JWT error stack:', jwtError?.stack);
+        return res.redirect(`/?error=jwt_error&details=${encodeURIComponent(jwtError?.message || 'Unknown JWT error')}`);
+      }
+    } catch (error: any) {
+      console.error('Supabase operation error:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+      });
+      return res.redirect(`/?error=supabase_error&details=${encodeURIComponent(error?.message || 'Unknown error')}`);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('OAuth callback error:', error);
-    return res.redirect('/?error=oauth_error');
+    console.error('Error stack:', error?.stack);
+    return res.redirect(`/?error=oauth_error&details=${encodeURIComponent(error?.message || 'Unknown error')}`);
   }
 }
 
