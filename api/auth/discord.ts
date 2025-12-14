@@ -38,8 +38,9 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-  const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || `${req.url?.split('/api')[0] || 'http://localhost:8080'}/api/auth/discord/callback`;
+  // Tenta pegar das variáveis de ambiente (com ou sem VITE_)
+  const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || process.env.VITE_DISCORD_CLIENT_ID;
+  const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || process.env.VITE_DISCORD_REDIRECT_URI || `${req.url?.split('/api')[0] || 'http://localhost:8080'}/api/auth/discord/callback`;
   const DISCORD_SCOPE = 'identify email';
 
   if (!DISCORD_CLIENT_ID) {

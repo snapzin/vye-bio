@@ -3,7 +3,8 @@
  * Sistema de autenticação próprio sem Supabase Auth
  */
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+// Tenta pegar JWT_SECRET das variáveis de ambiente (com ou sem VITE_)
+const JWT_SECRET = process.env.JWT_SECRET || process.env.VITE_JWT_SECRET || 'your-secret-key-change-in-production';
 
 interface JWTPayload {
   userId: string;
