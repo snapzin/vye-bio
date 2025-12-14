@@ -184,6 +184,32 @@ const Profile = () => {
     }
   }, [profile?.user_id]);
 
+  // Increment profile views when profile is loaded
+  useEffect(() => {
+    if (!profile || !username) return;
+
+    // Use sessionStorage to prevent multiple increments in the same session
+    const viewKey = `profile_viewed_${username}`;
+    const hasViewed = sessionStorage.getItem(viewKey);
+
+    if (!hasViewed) {
+      // Mark as viewed in this session
+      sessionStorage.setItem(viewKey, 'true');
+
+      // Increment views_count using Supabase RPC function
+      supabase
+        .rpc('increment_profile_views', { profile_username: username })
+        .then(({ error }) => {
+          if (error) {
+            console.error('Erro ao incrementar visualizações:', error);
+          }
+        })
+        .catch((error) => {
+          console.error('Erro ao incrementar visualizações:', error);
+        });
+    }
+  }, [profile, username]);
+
   // Initialize audio player
   useEffect(() => {
     if (profile?.music_url) {
