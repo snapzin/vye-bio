@@ -365,12 +365,13 @@ const DashboardWidget = () => {
               placeholder="Ex: 1234"
               value={valorantTag}
               onChange={(e) => {
-                setValorantTag(e.target.value.replace(/[^a-zA-Z0-9]/g, ""));
+                // Remove apenas o # se o usuário tentar digitar, mas permite outros caracteres especiais
+                setValorantTag(e.target.value.replace(/#/g, ""));
               }}
               className="w-full max-w-md"
             />
             <p className="text-xs text-muted-foreground">
-              Digite apenas o número/letras da tag (sem o #)
+              Digite a tag (sem o #). Caracteres especiais como ñ e ç são permitidos.
             </p>
           </div>
 
