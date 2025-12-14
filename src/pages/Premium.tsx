@@ -384,7 +384,7 @@ export default function Premium() {
                       <CardTitle className="text-2xl text-foreground">Premium</CardTitle>
                     </div>
                     <div className="mt-4">
-                      <span className="text-4xl font-bold text-foreground">R$ 29,90</span>
+                      <span className="text-4xl font-bold text-foreground">R$ 5,00</span>
                       <span className="text-muted-foreground">/mês</span>
                     </div>
                   </CardHeader>

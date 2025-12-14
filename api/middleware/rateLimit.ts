@@ -102,10 +102,10 @@ export function rateLimit(options: RateLimitOptions) {
     const result = checkRateLimit(identifier, options);
 
     if (!result.allowed) {
-      res.setHeader('X-RateLimit-Limit', options.maxRequests);
-      res.setHeader('X-RateLimit-Remaining', result.remaining);
-      res.setHeader('X-RateLimit-Reset', Math.ceil(result.resetTime / 1000));
-      res.setHeader('Retry-After', Math.ceil((result.resetTime - Date.now()) / 1000));
+      res.setHeader('X-RateLimit-Limit', options.maxRequests.toString());
+      res.setHeader('X-RateLimit-Remaining', result.remaining.toString());
+      res.setHeader('X-RateLimit-Reset', Math.ceil(result.resetTime / 1000).toString());
+      res.setHeader('Retry-After', Math.ceil((result.resetTime - Date.now()) / 1000).toString());
       res.status(429).json({
         error: 'Muitas requisições. Tente novamente mais tarde.',
         retryAfter: Math.ceil((result.resetTime - Date.now()) / 1000),
@@ -113,9 +113,9 @@ export function rateLimit(options: RateLimitOptions) {
       return;
     }
 
-    res.setHeader('X-RateLimit-Limit', options.maxRequests);
-    res.setHeader('X-RateLimit-Remaining', result.remaining);
-    res.setHeader('X-RateLimit-Reset', Math.ceil(result.resetTime / 1000));
+    res.setHeader('X-RateLimit-Limit', options.maxRequests.toString());
+    res.setHeader('X-RateLimit-Remaining', result.remaining.toString());
+    res.setHeader('X-RateLimit-Reset', Math.ceil(result.resetTime / 1000).toString());
 
     if (next) {
       next();

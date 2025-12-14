@@ -15,7 +15,7 @@ import { visionWallet } from "@/lib/visionwallet";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
 
-const PREMIUM_AMOUNT = 1.00;
+const PREMIUM_AMOUNT = 5.00;
 const EXPIRATION_MINUTES = 15;
 
 /**
@@ -80,7 +80,7 @@ export default function PremiumCheckout() {
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + EXPIRATION_MINUTES);
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("premium_transactions")
         .insert({
           user_id: user.id,
@@ -95,7 +95,7 @@ export default function PremiumCheckout() {
 
       if (error) {
         // Se a tabela não existe, apenas logar e continuar (não bloquear o fluxo)
-        if (error.code === "42P01" || error.status === 406) {
+        if (error.code === "42P01" || (error as any).status === 406) {
           console.warn("Tabela premium_transactions não encontrada. Transação não foi salva no banco, mas o pagamento continuará funcionando.");
           return;
         }
@@ -113,7 +113,7 @@ export default function PremiumCheckout() {
     if (!user) return null;
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("premium_transactions")
         .select("*")
         .eq("user_id", user.id)
@@ -124,7 +124,7 @@ export default function PremiumCheckout() {
 
       if (error) {
         // Se a tabela não existe ou há problema de permissão, retornar null silenciosamente
-        if (error.code === "PGRST116" || error.code === "42P01" || error.status === 406) {
+        if (error.code === "PGRST116" || error.code === "42P01" || (error as any).status === 406) {
           console.warn("Tabela premium_transactions não encontrada ou sem acesso. Criando nova transação.");
           return null;
         }
@@ -134,7 +134,7 @@ export default function PremiumCheckout() {
 
       if (!data || data.length === 0) return null;
 
-      const transaction = data[0];
+      const transaction = data[0] as any;
 
       // Calcular tempo restante
       const expiresAt = new Date(transaction.expires_at);
@@ -144,7 +144,7 @@ export default function PremiumCheckout() {
       if (remainingSeconds <= 0) {
         // Marcar como expirada (tentar, mas não bloquear se falhar)
         try {
-          await supabase
+          await (supabase as any)
             .from("premium_transactions")
             .update({ status: "EXPIRADO" })
             .eq("id", transaction.id);
@@ -417,7 +417,7 @@ export default function PremiumCheckout() {
 
     try {
       // Atualizar transação no banco de dados
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from("premium_transactions")
         .update({ status: "COMPLETO" })
         .eq("misticpay_transaction_id", txId);
@@ -442,7 +442,7 @@ export default function PremiumCheckout() {
 
       // Criar notificação de ativação do premium
       try {
-        await supabase
+        await (supabase as any)
           .from("notifications")
           .insert({
             user_id: user!.id,
@@ -617,13 +617,13 @@ export default function PremiumCheckout() {
                         Acesso completo aos recursos premium
                       </p>
                     </div>
-                    <p className="text-lg font-bold text-foreground">R$ 29,90</p>
+                    <p className="text-lg font-bold text-foreground">R$ 5,00</p>
                   </div>
 
                   <div className="space-y-2 pt-4 border-t">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Subtotal</span>
-                      <span className="text-foreground">R$ 29,90</span>
+                      <span className="text-foreground">R$ 5,00</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Desconto</span>
@@ -631,7 +631,7 @@ export default function PremiumCheckout() {
                     </div>
                     <div className="flex justify-between text-lg font-bold pt-2 border-t">
                       <span className="text-foreground">Total</span>
-                      <span className="text-foreground">R$ 29,90</span>
+                      <span className="text-foreground">R$ 5,00</span>
                     </div>
                   </div>
 

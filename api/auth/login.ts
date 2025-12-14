@@ -63,10 +63,10 @@ export default async function handler(
   const rateLimitResult = checkRateLimit(identifier, rateLimitConfigs.auth);
   if (!rateLimitResult.allowed) {
     setCorsHeaders(origin, res);
-    res.setHeader('X-RateLimit-Limit', rateLimitConfigs.auth.maxRequests);
-    res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining);
-    res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000));
-    res.setHeader('Retry-After', Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000));
+    res.setHeader('X-RateLimit-Limit', rateLimitConfigs.auth.maxRequests.toString());
+    res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+    res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000).toString());
+    res.setHeader('Retry-After', Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString());
     res.setHeader('Content-Type', 'application/json');
     return res.status(429).json({
       error: 'Muitas tentativas de login. Tente novamente mais tarde.',
@@ -145,9 +145,9 @@ export default async function handler(
 
     setCorsHeaders(origin, res);
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('X-RateLimit-Limit', rateLimitConfigs.auth.maxRequests);
-    res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining);
-    res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000));
+    res.setHeader('X-RateLimit-Limit', rateLimitConfigs.auth.maxRequests.toString());
+    res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+    res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000).toString());
     
     return res.status(200).json({
       token,
