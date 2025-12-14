@@ -198,7 +198,26 @@ export function useValorantData(
         if (response.status === 429) {
           throw new Error("Muitas requisições. Tente novamente em alguns minutos.");
         }
+        if (response.status === 404) {
+          // Verifica se a resposta é HTML (provavelmente index.html)
+          const contentType = response.headers.get('content-type');
+          if (contentType?.includes('text/html')) {
+            throw new Error("API route não encontrada. Verifique a configuração do servidor.");
+          }
+          throw new Error("Jogador não encontrado");
+        }
         throw new Error("Erro ao buscar dados do Valorant");
+      }
+
+      // Verifica se a resposta é JSON antes de fazer parse
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        const text = await response.text();
+        // Se começar com <!DOCTYPE, é HTML
+        if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<!doctype')) {
+          throw new Error("Resposta inválida: recebido HTML ao invés de JSON. Verifique a configuração da API.");
+        }
+        throw new Error(`Resposta inválida: esperado JSON, recebido ${contentType}`);
       }
 
       const result = await response.json();

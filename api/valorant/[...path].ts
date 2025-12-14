@@ -38,20 +38,57 @@ export default async function handler(
   // Extrai o path dos query params (Vercel passa o catch-all como query param)
   // O path pode vir como array ou string
   let pathString = '';
+  
+  // Tenta pegar do query param 'path' primeiro (formato catch-all do Vercel)
   if (req.query.path) {
     const path = req.query.path;
     pathString = Array.isArray(path) ? path.join('/') : path;
-  } else if (req.url) {
-    // Fallback: extrai o path da URL se não estiver nos query params
-    const urlPath = new URL(req.url, 'http://localhost').pathname;
-    pathString = urlPath.replace('/api/valorant', '').replace(/^\//, '');
+  } 
+  // Se não tiver no query, tenta extrair da URL
+  else if (req.url) {
+    try {
+      // Remove o protocolo e host se presente
+      let urlPath = req.url;
+      if (urlPath.includes('://')) {
+        const url = new URL(req.url);
+        urlPath = url.pathname;
+      } else if (!urlPath.startsWith('/')) {
+        urlPath = '/' + urlPath;
+      }
+      
+      // Remove /api/valorant do início
+      urlPath = urlPath.replace(/^\/api\/valorant\/?/, '');
+      pathString = urlPath.replace(/^\//, '');
+    } catch (e) {
+      // Se falhar ao criar URL, tenta extrair manualmente
+      const match = req.url.match(/\/api\/valorant\/(.+?)(?:\?|$)/);
+      if (match) {
+        pathString = match[1];
+      }
+    }
+  }
+  
+  // Se ainda não tiver path, retorna erro
+  if (!pathString) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(400).json({
+      status: 400,
+      message: 'Path não fornecido',
+      error: 'A rota da API não foi encontrada',
+      debug: {
+        url: req.url,
+        query: req.query,
+        method: req.method
+      }
+    });
   }
   
   // Constrói a URL da API do Valorant
   const queryString = req.url?.includes('?') ? req.url.split('?')[1] : '';
   const valorantApiUrl = `https://api.henrikdev.xyz/valorant/${pathString}${queryString ? `?${queryString}` : ''}`;
   
-  console.log('Proxy request:', { pathString, valorantApiUrl, method: req.method });
+  console.log('Proxy request:', { pathString, valorantApiUrl, method: req.method, query: req.query, url: req.url });
   
   // Pega a API key do ambiente (se configurada)
   const apiKey = process.env.VITE_HENRIKDEV_KEY || process.env.HENRIKDEV_KEY;
