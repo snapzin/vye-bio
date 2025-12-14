@@ -63,12 +63,13 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-    // Tenta pegar das variáveis de ambiente (com ou sem VITE_)
+    // Tenta pegar das variáveis de ambiente (prioriza sem VITE_ para serverless functions)
     const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || process.env.VITE_DISCORD_CLIENT_ID;
     const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || process.env.VITE_DISCORD_CLIENT_SECRET;
     const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || process.env.VITE_DISCORD_REDIRECT_URI || `${req.url?.split('/api')[0] || 'http://localhost:8080'}/api/auth/discord/callback`;
-    const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY;
+    // Para Supabase, tenta sem VITE_ primeiro (serverless functions não têm acesso a VITE_*)
+    const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
   if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
     res.setHeader('Access-Control-Allow-Origin', '*');
