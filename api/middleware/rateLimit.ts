@@ -66,14 +66,7 @@ export function checkRateLimit(
 /**
  * Obtém identificador único para rate limiting
  */
-export function getRateLimitIdentifier(req: {
-  headers?: {
-    [key: string]: string | string[] | undefined;
-    'x-forwarded-for'?: string;
-    'x-real-ip'?: string;
-  };
-  body?: { userId?: string };
-}): string {
+export function getRateLimitIdentifier(req: any): string {
   // Tenta pegar IP do header (Vercel)
   const forwardedFor = req.headers?.['x-forwarded-for'];
   const realIp = req.headers?.['x-real-ip'];
