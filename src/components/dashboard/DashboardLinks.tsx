@@ -81,14 +81,14 @@ export function DashboardLinks() {
   }
 
   return (
-    <div className="space-y-6">
-      <motion.div className="flex items-center justify-between" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+    <div className="space-y-4 sm:space-y-6">
+      <motion.div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center gap-2">
           <Link2 className="w-5 h-5 text-accent" />
-          <h3 className="font-semibold text-foreground">Seus Links</h3>
+          <h3 className="font-semibold text-foreground text-base sm:text-lg">Seus Links</h3>
           <span className="text-sm text-muted-foreground">({links.length})</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Link Style Toggle */}
           <div className="flex items-center gap-1 p-1 rounded-lg bg-secondary/50 border border-border/50">
             <button
@@ -174,23 +174,24 @@ export function DashboardLinks() {
               </button>
             </div>
           )}
-          <Button onClick={() => setShowAddForm(!showAddForm)} size="sm" className="gap-2 bg-accent hover:bg-accent/90">
-            <Plus className="w-4 h-4" />
-            Adicionar Link
+          <Button onClick={() => setShowAddForm(!showAddForm)} size="sm" className="gap-2 bg-accent hover:bg-accent/90 text-xs sm:text-sm">
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Adicionar Link</span>
+            <span className="sm:hidden">Adicionar</span>
           </Button>
         </div>
       </motion.div>
 
       <AnimatePresence>
         {showAddForm && (
-          <motion.div className="p-6 md:p-7 rounded-2xl bg-card border border-border/50" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-            <h4 className="font-medium text-lg text-foreground mb-4">Adicionar Novo Link</h4>
-            <div className="space-y-4">
+          <motion.div className="p-4 sm:p-6 md:p-7 rounded-xl sm:rounded-2xl bg-card border border-border/50" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
+            <h4 className="font-medium text-base sm:text-lg text-foreground mb-3 sm:mb-4">Adicionar Novo Link</h4>
+            <div className="space-y-3 sm:space-y-4">
               {/* Platform Selector */}
               <div>
-                <label className="text-sm text-muted-foreground mb-1.5 block">Rede Social (opcional)</label>
+                <label className="text-xs sm:text-sm text-muted-foreground mb-1.5 block">Rede Social (opcional)</label>
                 <Select onValueChange={handlePlatformSelect}>
-                  <SelectTrigger className="bg-secondary/50">
+                  <SelectTrigger className="bg-secondary/50 text-sm">
                     <SelectValue placeholder="Selecione uma rede social" />
                   </SelectTrigger>
                   <SelectContent>
@@ -210,17 +211,17 @@ export function DashboardLinks() {
                 </Select>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input placeholder="Título do link" value={newLink.title} onChange={(e) => setNewLink(prev => ({ ...prev, title: e.target.value }))} className="bg-secondary/50" />
-                <Input placeholder="URL" value={newLink.url} onChange={(e) => handleUrlChange(e.target.value)} className="bg-secondary/50" />
-                <Input placeholder="Ícone emoji (opcional)" value={newLink.icon} onChange={(e) => setNewLink(prev => ({ ...prev, icon: e.target.value }))} className="bg-secondary/50 md:col-span-2" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                <Input placeholder="Título do link" value={newLink.title} onChange={(e) => setNewLink(prev => ({ ...prev, title: e.target.value }))} className="bg-secondary/50 text-sm" />
+                <Input placeholder="URL" value={newLink.url} onChange={(e) => handleUrlChange(e.target.value)} className="bg-secondary/50 text-sm" />
+                <Input placeholder="Ícone emoji (opcional)" value={newLink.icon} onChange={(e) => setNewLink(prev => ({ ...prev, icon: e.target.value }))} className="bg-secondary/50 md:col-span-2 text-sm" />
               </div>
               
-              <div className="flex gap-2 pt-2">
-                <Button onClick={handleAddLink} disabled={adding} className="flex-1 bg-primary text-primary-foreground hover:opacity-90">
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                <Button onClick={handleAddLink} disabled={adding} className="flex-1 bg-primary text-primary-foreground hover:opacity-90 text-sm">
                   {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : "Adicionar Link"}
                 </Button>
-                <Button variant="secondary" onClick={() => setShowAddForm(false)}>Cancelar</Button>
+                <Button variant="secondary" onClick={() => setShowAddForm(false)} className="text-sm">Cancelar</Button>
               </div>
             </div>
           </motion.div>
@@ -321,45 +322,49 @@ export function DashboardLinks() {
       <div className="space-y-3">
         <AnimatePresence mode="popLayout">
           {links.map((link, index) => (
-            <motion.div key={link.id} className="p-5 md:p-6 rounded-2xl bg-card border border-border/50 hover:border-border transition-colors group" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -100 }} transition={{ delay: index * 0.05 }}>
-              <div className="flex items-center gap-4">
-                <div className="text-muted-foreground/50 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity">
-                  <GripVertical className="w-4 h-4" />
+            <motion.div key={link.id} className="p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl bg-card border border-border/50 hover:border-border transition-colors group" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -100 }} transition={{ delay: index * 0.05 }}>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto flex-1 sm:flex-initial min-w-0">
+                  <div className="text-muted-foreground/50 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                    <GripVertical className="w-4 h-4" />
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0">
+                    {(() => {
+                      const { Icon, color, isCustom } = getSocialIcon(link.url, link.icon);
+                      const iconColor = link.icon_color || color;
+                      if (isCustom && link.icon) {
+                        return <span className="text-lg">{link.icon}</span>;
+                      }
+                      return <Icon className="w-5 h-5" style={iconColor ? { color: iconColor } : undefined} />;
+                    })()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-medium truncate text-sm sm:text-base ${link.is_visible ? 'text-foreground' : 'text-muted-foreground'}`}>{link.title}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{link.url}</p>
+                  </div>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0">
-                  {(() => {
-                    const { Icon, color, isCustom } = getSocialIcon(link.url, link.icon);
-                    const iconColor = link.icon_color || color;
-                    if (isCustom && link.icon) {
-                      return <span className="text-lg">{link.icon}</span>;
-                    }
-                    return <Icon className="w-5 h-5" style={iconColor ? { color: iconColor } : undefined} />;
-                  })()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`font-medium truncate ${link.is_visible ? 'text-foreground' : 'text-muted-foreground'}`}>{link.title}</p>
-                  <p className="text-sm text-muted-foreground truncate">{link.url}</p>
-                </div>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <MousePointer className="w-3 h-3" />
-                  <span>{link.clicks_count || 0}</span>
-                </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingLinkData({ id: link.id, title: link.title, url: link.url, icon: link.icon || "" })} title="Editar link">
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingLink({ id: link.id, icon_color: link.icon_color, icon: link.icon })} title="Personalizar ícone">
-                    <Settings2 className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleVisibility(link.id, link.is_visible)}>
-                    {link.is_visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4 text-muted-foreground" />}
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(link.url, '_blank')}>
-                    <ExternalLink className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(link.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-2 sm:gap-4">
+                  <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+                    <MousePointer className="w-3 h-3" />
+                    <span>{link.clicks_count || 0}</span>
+                  </div>
+                  <div className="flex items-center gap-0.5 sm:gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={() => setEditingLinkData({ id: link.id, title: link.title, url: link.url, icon: link.icon || "" })} title="Editar link">
+                      <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={() => setEditingLink({ id: link.id, icon_color: link.icon_color, icon: link.icon })} title="Personalizar ícone">
+                      <Settings2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={() => toggleVisibility(link.id, link.is_visible)} title={link.is_visible ? "Ocultar" : "Mostrar"}>
+                      {link.is_visible ? <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <EyeOff className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />}
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={() => window.open(link.url, '_blank')} title="Abrir link">
+                      <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(link.id)} title="Deletar">
+                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </motion.div>

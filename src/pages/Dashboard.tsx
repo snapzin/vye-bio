@@ -17,7 +17,7 @@ import { DashboardSettings } from "@/components/dashboard/DashboardSettings";
 import { DashboardAdmin } from "@/components/dashboard/DashboardAdmin";
 import { DashboardNotifications } from "@/components/dashboard/DashboardNotifications";
 import { DashboardPremium } from "@/components/dashboard/DashboardPremium";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 type Tab = 'dashboard' | 'appearance' | 'links' | 'badges' | 'music' | 'widget' | 'settings' | 'admin' | 'notifications' | 'premium';
@@ -175,6 +175,7 @@ const Dashboard = () => {
       {/* Mobile Menu Sheet */}
       <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
         <SheetContent side="left" className="w-[280px] sm:w-[320px] p-0">
+          <SheetTitle className="sr-only">Menu do dashboard</SheetTitle>
           {sidebarContent}
         </SheetContent>
       </Sheet>

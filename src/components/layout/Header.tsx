@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 export function Header() {
   const { user, loading } = useAuth();
@@ -91,6 +91,7 @@ export function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-background border-border">
+                <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
                 <div className="flex flex-col gap-4 mt-8">
                   <div className="flex flex-col gap-2">
                     {navLinks}

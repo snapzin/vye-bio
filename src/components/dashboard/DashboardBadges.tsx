@@ -71,7 +71,8 @@ function SortableBadgeItem({ badge, onToggleDisplay, onDelete }: SortableBadgeIt
         <div
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors touch-none select-none"
+          style={{ touchAction: 'none' }}
         >
           <GripVertical className="w-5 h-5" />
         </div>
@@ -122,7 +123,11 @@ export function DashboardBadges() {
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
