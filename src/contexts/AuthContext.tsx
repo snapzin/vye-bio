@@ -49,17 +49,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Busca dados do perfil no Supabase (apenas banco de dados)
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('user_id, username, display_name, avatar_url, email, discord_user_id')
+        .select('user_id, username, display_name, avatar_url, discord_user_id')
         .eq('user_id', data.userId)
         .maybeSingle();
 
-      if (error || !profile) {
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+
+      if (!profile) {
+        console.error('Profile not found for userId:', data.userId);
         return null;
       }
 
       return {
         id: profile.user_id,
-        email: profile.email || undefined,
+        email: data.email || undefined, // Usa email do token JWT
         discordId: profile.discord_user_id || undefined,
         username: profile.username,
         displayName: profile.display_name || undefined,

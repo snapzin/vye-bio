@@ -11,6 +11,11 @@ DROP CONSTRAINT IF EXISTS profiles_user_id_fkey;
 -- Also update the RLS policies to not rely on auth.uid()
 -- We'll need to handle authentication via JWT in the application layer
 
+-- Update the select policy to allow public reads (profiles are public)
+DROP POLICY IF EXISTS "Profiles are publicly viewable" ON public.profiles;
+CREATE POLICY "Profiles are publicly viewable" ON public.profiles
+  FOR SELECT USING (true);
+
 -- Update the insert policy to allow inserts without auth.uid() check
 -- (We'll handle auth via JWT in the API layer)
 DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
