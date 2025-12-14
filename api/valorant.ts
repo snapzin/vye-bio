@@ -96,7 +96,7 @@ export default async function handler(
   const apiKey = process.env.HENRIKDEV_KEY || process.env.VITE_HENRIKDEV_KEY;
   
   // Headers para a requisição
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'User-Agent': 'Mozilla/5.0',
   };

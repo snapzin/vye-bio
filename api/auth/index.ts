@@ -95,22 +95,21 @@ export default async function handler(
 
     const { action, email, password, username, token } = body || {};
 
-  if (!action || !['login', 'register', 'session'].includes(action)) {
-    setCorsHeaders(origin, res);
-    res.setHeader('Content-Type', 'application/json');
-    return res.status(400).json({ error: 'Ação inválida. Use: login, register ou session' });
-  }
+    if (!action || !['login', 'register', 'session'].includes(action)) {
+      setCorsHeaders(origin, res);
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(400).json({ error: 'Ação inválida. Use: login, register ou session' });
+    }
 
-  const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    setCorsHeaders(origin, res);
-    res.setHeader('Content-Type', 'application/json');
-    return res.status(500).json({ error: 'Supabase not configured' });
-  }
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      setCorsHeaders(origin, res);
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(500).json({ error: 'Supabase not configured' });
+    }
 
-  try {
     const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
