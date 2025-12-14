@@ -3,7 +3,7 @@
  * Sistema de autenticação próprio sem Supabase Auth
  */
 
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 
 // JWT_SECRET é obrigatório - não usar fallback inseguro
 function getJWTSecret(): string {

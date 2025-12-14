@@ -2,7 +2,7 @@
  * Vercel Serverless Function para processar o callback do OAuth2 do Discord
  */
 
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import { createToken } from '../jwt.js';
 
 interface VercelRequest {

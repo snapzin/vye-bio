@@ -3,7 +3,7 @@
  * Suporta: login, register, session
  */
 
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import { createToken, verifyToken } from './jwt.js';
 import { isValidEmail, isValidUsername, isValidPassword } from '../utils/validation.js';
 import { setCorsHeaders, handleCorsPreflight } from '../utils/cors.js';
@@ -56,7 +56,7 @@ async function hashPassword(password: string): Promise<string> {
   }
 }
 
-export default async function handler(
+async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
@@ -364,4 +364,30 @@ export default async function handler(
     }
   }
 }
+
+// Wrapper para garantir que sempre retorne JSON, mesmo em caso de erro de importação
+async function safeHandler(
+  req: VercelRequest,
+  res: VercelResponse
+) {
+  try {
+    return await handler(req, res);
+  } catch (error: any) {
+    // Garantir que sempre retorna JSON, mesmo em caso de erro de importação
+    try {
+      const origin = req.headers?.origin as string | undefined;
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(500).json({ 
+        error: 'Internal server error'
+      });
+    } catch (e) {
+      // Se tudo falhar, não fazer nada
+    }
+  }
+}
+
+export default safeHandler;
 
