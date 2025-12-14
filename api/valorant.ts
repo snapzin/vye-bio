@@ -90,19 +90,32 @@ export default async function handler(
   const queryString = req.url?.includes('?') ? req.url.split('?')[1] : '';
   const valorantApiUrl = `https://api.henrikdev.xyz/valorant/${pathString}${queryString ? `?${queryString}` : ''}`;
   
-  console.log('Proxy request:', { pathString, valorantApiUrl, method: req.method, query: req.query, url: req.url });
-  
   // Pega a API key do ambiente (se configurada)
-  const apiKey = process.env.VITE_HENRIKDEV_KEY || process.env.HENRIKDEV_KEY;
+  // No Vercel, variáveis de ambiente VITE_* podem não estar disponíveis no runtime
+  // Configure HENRIKDEV_KEY no Vercel (sem prefixo VITE_) OU use VITE_HENRIKDEV_KEY
+  const apiKey = process.env.HENRIKDEV_KEY || process.env.VITE_HENRIKDEV_KEY;
   
   // Headers para a requisição
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
+    'User-Agent': 'Mozilla/5.0',
   };
   
+  // A API do HenrikDev usa Authorization header com a API key
   if (apiKey) {
     headers['Authorization'] = apiKey;
+    console.log('API Key encontrada e será enviada');
+  } else {
+    console.warn('API Key não encontrada. A requisição pode falhar se a API exigir autenticação.');
   }
+  
+  console.log('Proxy request:', { 
+    pathString, 
+    valorantApiUrl, 
+    method: req.method, 
+    hasApiKey: !!apiKey,
+    url: req.url 
+  });
   
   try {
     const response = await fetch(valorantApiUrl, {
