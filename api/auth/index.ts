@@ -62,6 +62,18 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  // Garantir que sempre retorna JSON, mesmo em caso de erro
+  const sendError = (status: number, message: string) => {
+    try {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.status(status).json({ error: message });
+    } catch (e) {
+      // Se não conseguir enviar JSON, pelo menos tenta
+      console.error('Failed to send error response:', e);
+    }
+  };
+
   // Wrapper de erro global para capturar qualquer erro não tratado
   try {
     const origin = req.headers?.origin as string | undefined;
@@ -329,20 +341,52 @@ export default async function handler(
     console.error('Auth API error:', error);
     console.error('Error stack:', error?.stack);
     
-    const origin = req.headers?.origin as string | undefined;
-    setCorsHeaders(origin, res);
-    res.setHeader('Content-Type', 'application/json');
-    
+    // Garantir que sempre retorna JSON, mesmo se houver erro nos utilitários
     try {
-      const statusCode = getStatusCode(error);
-      const errorResponse = handleError(error, res, () => setCorsHeaders(origin, res));
-      return res.status(statusCode).json(errorResponse);
-    } catch (handleErrorException) {
-      // Fallback se handleError falhar
+      const origin = req.headers?.origin as string | undefined;
+      
+      // Tentar usar os utilitários, mas ter fallback
+      try {
+        if (setCorsHeaders) setCorsHeaders(origin, res);
+      } catch (e) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      }
+      
+      res.setHeader('Content-Type', 'application/json');
+      
+      // Tentar usar handleError, mas ter fallback
+      try {
+        if (getStatusCode && handleError) {
+          const statusCode = getStatusCode(error);
+          const errorResponse = handleError(error, res, () => {
+            try {
+              if (setCorsHeaders) setCorsHeaders(origin, res);
+            } catch (e) {
+              res.setHeader('Access-Control-Allow-Origin', '*');
+            }
+          });
+          return res.status(statusCode).json(errorResponse);
+        }
+      } catch (handleErrorException) {
+        // Fallback se handleError falhar
+      }
+      
+      // Fallback final - sempre retorna JSON
       return res.status(500).json({ 
         error: 'Internal server error',
         message: error?.message || 'Unknown error'
       });
+    } catch (finalError) {
+      // Último recurso - tentar retornar JSON mesmo se tudo falhar
+      console.error('Final error handler failed:', finalError);
+      try {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.status(500).json({ error: 'Internal server error' });
+      } catch (e) {
+        // Se nem isso funcionar, não há mais o que fazer
+        console.error('Could not send error response:', e);
+      }
     }
   }
 }
