@@ -7,7 +7,7 @@ import crypto from 'crypto';
 import { createToken, verifyToken } from './jwt.js';
 import { isValidEmail, isValidUsername, isValidPassword } from '../utils/validation.js';
 import { setCorsHeaders, handleCorsPreflight } from '../utils/cors.js';
-import { handleError, getStatusCode } from '../utils/errors.js';
+import { handleError, getStatusCode, formatError } from '../utils/errors.js';
 import { setSecurityHeaders } from '../utils/securityHeaders.js';
 import { checkRateLimit, getRateLimitIdentifier, rateLimitConfigs } from '../middleware/rateLimit.js';
 
@@ -41,7 +41,6 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
     const bcrypt = await import('bcryptjs');
     return await bcrypt.default.compare(password, hash);
   } catch (error) {
-    console.error('Password verification error:', error);
     throw new Error('bcryptjs não está disponível. Sistema de autenticação não pode funcionar sem esta dependência.');
   }
 }
@@ -53,7 +52,6 @@ async function hashPassword(password: string): Promise<string> {
     const salt = await bcrypt.default.genSalt(10);
     return await bcrypt.default.hash(password, salt);
   } catch (error) {
-    console.error('Password hashing error:', error);
     throw new Error('bcryptjs não está disponível. Sistema de autenticação não pode funcionar sem esta dependência.');
   }
 }
@@ -62,18 +60,6 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  // Garantir que sempre retorna JSON, mesmo em caso de erro
-  const sendError = (status: number, message: string) => {
-    try {
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.status(status).json({ error: message });
-    } catch (e) {
-      // Se não conseguir enviar JSON, pelo menos tenta
-      console.error('Failed to send error response:', e);
-    }
-  };
-
   // Wrapper de erro global para capturar qualquer erro não tratado
   try {
     const origin = req.headers?.origin as string | undefined;
@@ -310,7 +296,6 @@ export default async function handler(
         .single();
 
       if (profileError) {
-        console.error('Error creating profile:', profileError);
         throw new Error('Erro ao criar conta');
       }
 
@@ -338,10 +323,7 @@ export default async function handler(
     }
 
   } catch (error: any) {
-    console.error('Auth API error:', error);
-    console.error('Error stack:', error?.stack);
-    
-    // Garantir que sempre retorna JSON, mesmo se houver erro nos utilitários
+    // Verificar se a resposta já foi enviada (para evitar erro de headers duplicados)
     try {
       const origin = req.headers?.origin as string | undefined;
       
@@ -349,22 +331,22 @@ export default async function handler(
       try {
         if (setCorsHeaders) setCorsHeaders(origin, res);
       } catch (e) {
-        res.setHeader('Access-Control-Allow-Origin', '*');
+        // Se setHeader falhar, pode ser que headers já foram enviados
+        // Não fazer nada, apenas continuar
       }
       
-      res.setHeader('Content-Type', 'application/json');
+      try {
+        res.setHeader('Content-Type', 'application/json');
+      } catch (e) {
+        // Headers já enviados, não fazer nada
+        return;
+      }
       
       // Tentar usar handleError, mas ter fallback
       try {
         if (getStatusCode && handleError) {
           const statusCode = getStatusCode(error);
-          const errorResponse = handleError(error, res, () => {
-            try {
-              if (setCorsHeaders) setCorsHeaders(origin, res);
-            } catch (e) {
-              res.setHeader('Access-Control-Allow-Origin', '*');
-            }
-          });
+          const errorResponse = formatError(error);
           return res.status(statusCode).json(errorResponse);
         }
       } catch (handleErrorException) {
@@ -376,17 +358,9 @@ export default async function handler(
         error: 'Internal server error',
         message: error?.message || 'Unknown error'
       });
-    } catch (finalError) {
-      // Último recurso - tentar retornar JSON mesmo se tudo falhar
-      console.error('Final error handler failed:', finalError);
-      try {
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.status(500).json({ error: 'Internal server error' });
-      } catch (e) {
-        // Se nem isso funcionar, não há mais o que fazer
-        console.error('Could not send error response:', e);
-      }
+    } catch (finalError: any) {
+      // Se falhar ao enviar resposta, pode ser que headers já foram enviados
+      // Não fazer nada para evitar erros
     }
   }
 }
