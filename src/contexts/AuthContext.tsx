@@ -119,75 +119,81 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, username: string) => {
-    // Mantém compatibilidade com Supabase Auth para registro por email
-    // (você pode implementar seu próprio sistema depois)
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          username: username.toLowerCase(),
-          display_name: username,
-        }
-      }
-    });
-    
-    if (!error && data.session) {
-      // Converte para nosso formato de usuário
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('user_id, username, display_name, avatar_url, email')
-        .eq('user_id', data.session.user.id)
-        .maybeSingle();
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, username }),
+      });
 
-      if (profile) {
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { error: new Error(data.error || 'Registration failed') };
+      }
+
+      // Armazena o token JWT
+      if (data.token) {
+        localStorage.setItem('auth_token', data.token);
+      }
+
+      // Atualiza o estado do usuário
+      if (data.user) {
         setUser({
-          id: profile.user_id,
-          email: profile.email || undefined,
-          username: profile.username,
-          displayName: profile.display_name || undefined,
-          avatarUrl: profile.avatar_url || undefined,
+          id: data.user.id,
+          email: data.user.email,
+          username: data.user.username,
+          displayName: data.user.displayName,
+          avatarUrl: data.user.avatarUrl,
         });
       }
+
+      return { error: null };
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      return { error: error instanceof Error ? error : new Error('Registration failed') };
     }
-    
-    return { error };
   };
 
   const signIn = async (email: string, password: string) => {
-    // Mantém compatibilidade com Supabase Auth para login por email
-    // (você pode implementar seu próprio sistema depois)
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!error) {
-      // Busca dados do perfil
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('user_id, username, display_name, avatar_url, email')
-          .eq('user_id', authUser.id)
-          .maybeSingle();
+      const data = await response.json();
 
-        if (profile) {
-          setUser({
-            id: profile.user_id,
-            email: profile.email || undefined,
-            username: profile.username,
-            displayName: profile.display_name || undefined,
-            avatarUrl: profile.avatar_url || undefined,
-          });
-        }
+      if (!response.ok) {
+        return { error: new Error(data.error || 'Login failed') };
       }
-    }
 
-    return { error };
+      // Armazena o token JWT
+      if (data.token) {
+        localStorage.setItem('auth_token', data.token);
+      }
+
+      // Atualiza o estado do usuário
+      if (data.user) {
+        setUser({
+          id: data.user.id,
+          email: data.user.email,
+          username: data.user.username,
+          displayName: data.user.displayName,
+          avatarUrl: data.user.avatarUrl,
+        });
+      }
+
+      return { error: null };
+    } catch (error: any) {
+      console.error('Signin error:', error);
+      return { error: error instanceof Error ? error : new Error('Login failed') };
+    }
   };
 
   const signInWithDiscord = async () => {
