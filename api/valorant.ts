@@ -1,6 +1,8 @@
 /**
  * Vercel Serverless Function para fazer proxy da API do Valorant
  * Resolve problemas de CORS em produção
+ * 
+ * Esta função captura todas as rotas /api/valorant/*
  */
 
 // Tipos para Vercel Request/Response
@@ -35,15 +37,15 @@ export default async function handler(
     return res.status(204).end();
   }
 
-  // Extrai o path dos query params (Vercel passa o catch-all como query param)
-  // O path pode vir como array ou string
+  // Extrai o path da URL
+  // O Vercel passa o path como query param quando usa rewrites
   let pathString = '';
   
-  // Tenta pegar do query param 'path' primeiro (formato catch-all do Vercel)
+  // Tenta pegar do query param 'path' (quando vem do rewrite)
   if (req.query.path) {
     const path = req.query.path;
     pathString = Array.isArray(path) ? path.join('/') : path;
-  } 
+  }
   // Se não tiver no query, tenta extrair da URL
   else if (req.url) {
     try {

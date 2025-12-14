@@ -8,7 +8,11 @@
   },
   "rewrites": [
     {
-      "source": "/((?!api).*)",
+      "source": "/api/valorant/:path*",
+      "destination": "/api/valorant"
+    },
+    {
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
