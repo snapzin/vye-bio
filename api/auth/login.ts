@@ -3,12 +3,12 @@
  * ATUALIZADO: Removidos fallbacks inseguros, adicionadas validações e rate limiting
  */
 
-import { createToken } from '../auth/jwt';
-import { isValidEmail } from '../utils/validation';
-import { setCorsHeaders, handleCorsPreflight } from '../utils/cors';
-import { handleError, getStatusCode } from '../utils/errors';
-import { setSecurityHeaders } from '../utils/securityHeaders';
-import { checkRateLimit, getRateLimitIdentifier, rateLimitConfigs } from '../middleware/rateLimit';
+import { createToken } from './jwt.js';
+import { isValidEmail } from '../utils/validation.js';
+import { setCorsHeaders, handleCorsPreflight } from '../utils/cors.js';
+import { handleError, getStatusCode } from '../utils/errors.js';
+import { setSecurityHeaders } from '../utils/securityHeaders.js';
+import { checkRateLimit, getRateLimitIdentifier, rateLimitConfigs } from '../middleware/rateLimit.js';
 
 interface VercelRequest {
   method?: string;

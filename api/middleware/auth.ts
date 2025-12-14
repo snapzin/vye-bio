@@ -3,7 +3,7 @@
  * Valida tokens JWT e extrai informações do usuário
  */
 
-import { verifyToken } from '../auth/jwt';
+import { verifyToken } from '../auth/jwt.js';
 
 interface AuthenticatedRequest {
   userId?: string;

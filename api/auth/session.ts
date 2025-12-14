@@ -3,10 +3,10 @@
  * ATUALIZADO: Usa função centralizada de verificação, remove fallback inseguro
  */
 
-import { verifyToken } from './jwt';
-import { setCorsHeaders, handleCorsPreflight } from '../utils/cors';
-import { handleError, getStatusCode } from '../utils/errors';
-import { setSecurityHeaders } from '../utils/securityHeaders';
+import { verifyToken } from './jwt.js';
+import { setCorsHeaders, handleCorsPreflight } from '../utils/cors.js';
+import { handleError, getStatusCode } from '../utils/errors.js';
+import { setSecurityHeaders } from '../utils/securityHeaders.js';
 
 interface VercelRequest {
   method?: string;

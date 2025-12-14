@@ -3,11 +3,11 @@
  * Valida autenticação e permissões antes de permitir atualização
  */
 
-import { requireAuth } from '../middleware/auth';
-import { requireResourceAccess } from '../utils/permissions';
-import { handleError, getStatusCode } from '../utils/errors';
-import { setCorsHeaders, handleCorsPreflight } from '../utils/cors';
-import { isValidEmail, sanitizeString } from '../utils/validation';
+import { requireAuth } from '../middleware/auth.js';
+import { requireResourceAccess } from '../utils/permissions.js';
+import { handleError, getStatusCode } from '../utils/errors.js';
+import { setCorsHeaders, handleCorsPreflight } from '../utils/cors.js';
+import { isValidEmail, sanitizeString } from '../utils/validation.js';
 
 interface VercelRequest {
   method?: string;

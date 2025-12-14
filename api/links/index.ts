@@ -1,14 +1,14 @@
 /**
- * API protegida para atualizar link
- * Valida autenticação e permissões
+ * API consolidada para gerenciar links
+ * Suporta: create, update, delete
  */
 
-import { requireAuth } from '../middleware/auth';
-import { requireResourceAccess } from '../utils/permissions';
-import { setCorsHeaders, handleCorsPreflight } from '../utils/cors';
-import { handleError, getStatusCode } from '../utils/errors';
-import { setSecurityHeaders } from '../utils/securityHeaders';
-import { isValidUrl, sanitizeString, isValidUUID } from '../utils/validation';
+import { requireAuth } from '../middleware/auth.js';
+import { requireResourceAccess } from '../utils/permissions.js';
+import { setCorsHeaders, handleCorsPreflight } from '../utils/cors.js';
+import { handleError, getStatusCode } from '../utils/errors.js';
+import { setSecurityHeaders } from '../utils/securityHeaders.js';
+import { isValidUrl, sanitizeString, isValidUUID } from '../utils/validation.js';
 
 interface VercelRequest {
   method?: string;
@@ -19,6 +19,7 @@ interface VercelRequest {
     origin?: string;
   };
   body?: {
+    action?: 'create' | 'update' | 'delete';
     linkId?: string;
     title?: string;
     url?: string;
@@ -56,18 +57,15 @@ export default async function handler(
   }
 
   try {
-    // Autenticar usuário
     const auth = requireAuth(req);
+    const { action, linkId, title, url, icon, sortOrder, isVisible } = req.body || {};
 
-    const { linkId, title, url, icon, sortOrder, isVisible } = req.body || {};
-
-    if (!linkId || !isValidUUID(linkId)) {
+    if (!action || !['create', 'update', 'delete'].includes(action)) {
       setCorsHeaders(origin, res);
       res.setHeader('Content-Type', 'application/json');
-      return res.status(400).json({ error: 'ID do link inválido' });
+      return res.status(400).json({ error: 'Ação inválida. Use: create, update ou delete' });
     }
 
-    // Buscar link para verificar ownership
     const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
     const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -78,6 +76,55 @@ export default async function handler(
     const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // CREATE
+    if (action === 'create') {
+      if (!title || !url) {
+        setCorsHeaders(origin, res);
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(400).json({ error: 'Título e URL são obrigatórios' });
+      }
+
+      if (!isValidUrl(url)) {
+        setCorsHeaders(origin, res);
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(400).json({ error: 'URL inválida' });
+      }
+
+      const sanitizedTitle = sanitizeString(title);
+      if (sanitizedTitle.length === 0 || sanitizedTitle.length > 100) {
+        setCorsHeaders(origin, res);
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(400).json({ error: 'Título deve ter entre 1 e 100 caracteres' });
+      }
+
+      const { data, error } = await supabase
+        .from('user_links')
+        .insert({
+          user_id: auth.userId,
+          title: sanitizedTitle,
+          url: url.slice(0, 500),
+          icon: icon ? sanitizeString(icon).slice(0, 50) : null,
+          sort_order: sortOrder || 0,
+          is_visible: true,
+        })
+        .select()
+        .single();
+
+      if (error) throw new Error('Erro ao criar link');
+
+      setCorsHeaders(origin, res);
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(201).json({ success: true, link: data });
+    }
+
+    // UPDATE ou DELETE - precisa de linkId
+    if (!linkId || !isValidUUID(linkId)) {
+      setCorsHeaders(origin, res);
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(400).json({ error: 'ID do link inválido' });
+    }
+
+    // Buscar link para verificar ownership
     const { data: existingLink, error: fetchError } = await supabase
       .from('user_links')
       .select('user_id')
@@ -91,9 +138,23 @@ export default async function handler(
     }
 
     // Verificar permissão
-    await requireResourceAccess(auth.userId, existingLink.user_id);
+    await requireResourceAccess(auth.userId!, existingLink.user_id);
 
-    // Validar e preparar dados de atualização
+    // DELETE
+    if (action === 'delete') {
+      const { error } = await supabase
+        .from('user_links')
+        .delete()
+        .eq('id', linkId);
+
+      if (error) throw new Error('Erro ao deletar link');
+
+      setCorsHeaders(origin, res);
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(200).json({ success: true });
+    }
+
+    // UPDATE
     const updateData: any = {};
 
     if (title !== undefined) {
@@ -127,7 +188,6 @@ export default async function handler(
       updateData.is_visible = isVisible;
     }
 
-    // Atualizar link
     const { data, error } = await supabase
       .from('user_links')
       .update(updateData)
@@ -135,9 +195,7 @@ export default async function handler(
       .select()
       .single();
 
-    if (error) {
-      throw new Error('Erro ao atualizar link');
-    }
+    if (error) throw new Error('Erro ao atualizar link');
 
     setCorsHeaders(origin, res);
     res.setHeader('Content-Type', 'application/json');
