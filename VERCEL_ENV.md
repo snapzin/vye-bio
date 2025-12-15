@@ -1,18 +1,22 @@
 # Variáveis de Ambiente Necessárias no Vercel
 
+⚠️ **IMPORTANTE**: O erro 500 ao fazer login com Discord geralmente indica que alguma dessas variáveis não está configurada.
+
 Configure as seguintes variáveis de ambiente no painel do Vercel (Settings > Environment Variables):
 
-## Supabase (Obrigatório)
+## Supabase (Obrigatório - causa erro se não configurado)
 - `SUPABASE_URL` ou `VITE_SUPABASE_URL` - URL do seu projeto Supabase
 - `SUPABASE_ANON_KEY` ou `VITE_SUPABASE_PUBLISHABLE_KEY` - Chave pública/anônima do Supabase
 
-## Discord OAuth (Obrigatório para autenticação)
+## Discord OAuth (Obrigatório - causa erro se não configurado)
 - `DISCORD_CLIENT_ID` ou `VITE_DISCORD_CLIENT_ID` - ID do cliente Discord
 - `DISCORD_CLIENT_SECRET` ou `VITE_DISCORD_CLIENT_SECRET` - Secret do cliente Discord
-- `DISCORD_REDIRECT_URI` ou `VITE_DISCORD_REDIRECT_URI` - URL de callback (geralmente: `https://seu-dominio.vercel.app/api/auth/discord/callback`)
+- `DISCORD_REDIRECT_URI` ou `VITE_DISCORD_REDIRECT_URI` - URL de callback (exemplo: `https://seu-projeto.vercel.app/api/auth/discord/callback`)
 
-## JWT (Obrigatório)
+## JWT (Obrigatório - causa crash se não configurado) ⚠️
 - `JWT_SECRET` ou `VITE_JWT_SECRET` - Chave secreta para assinar tokens JWT
+  - **IMPORTANTE**: Use uma string longa e aleatória (ex: gere com `openssl rand -hex 32`)
+  - **NÃO** use valores padrão como "your-secret-key-change-in-production"
 
 ## Valorant API (Opcional)
 - `HENRIKDEV_KEY` ou `VITE_HENRIKDEV_KEY` - Chave da API do HenrikDev para dados do Valorant
