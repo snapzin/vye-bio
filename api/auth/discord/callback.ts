@@ -60,8 +60,10 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
+  // Wrapper global de tratamento de erros para evitar crashes não capturados
+  try {
+    // Handle CORS preflight
+    if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -295,6 +297,18 @@ export default async function handler(
     }
     
     return res.redirect(`/?error=oauth_error&details=${encodeURIComponent(error?.message || 'Unknown error')}`);
+  }
+  } catch (globalError: any) {
+    // Captura qualquer erro não tratado anteriormente
+    console.error('Unhandled error in Discord callback:', globalError);
+    console.error('Stack trace:', globalError?.stack);
+    
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: globalError?.message || 'An unexpected error occurred',
+      details: process.env.NODE_ENV === 'development' ? globalError?.stack : undefined
+    });
   }
 }
 
