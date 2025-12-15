@@ -432,7 +432,6 @@ export default function PremiumCheckout() {
         .update({ status: "COMPLETO" })
         .eq("user_id", user!.id)
         .eq("status", "PENDENTE");
->>>>>>> 8f09891 (fix: corrigir configuração do vercel.json)
 
       if (updateError) {
         console.error("Error updating transaction status:", updateError);
