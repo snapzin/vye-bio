@@ -73,6 +73,7 @@ export default function PremiumCheckout() {
     appTransactionId: string;
     qrCode: string;
     qrCodeBase64: string;
+    paymentGateway: 'visionwallet' | 'misticpay';
   }) => {
     if (!user) return;
 
@@ -90,6 +91,7 @@ export default function PremiumCheckout() {
           status: "PENDENTE",
           qr_code: tx.qrCode,
           qr_code_base64: tx.qrCodeBase64,
+          payment_gateway: tx.paymentGateway,
           expires_at: expiresAt.toISOString(),
         });
 
@@ -160,6 +162,7 @@ export default function PremiumCheckout() {
         copyPaste: transaction.qr_code || "",
         qrCodeBase64: transaction.qr_code_base64 || "",
         expirationTime: remainingSeconds,
+        paymentGateway: transaction.payment_gateway as 'visionwallet' | 'misticpay' | null,
       };
     } catch (error) {
       console.error("Error loading transaction from database:", error);
@@ -202,9 +205,12 @@ export default function PremiumCheckout() {
         setExpirationTime(stored.expirationTime);
         setProgress((stored.expirationTime / (EXPIRATION_MINUTES * 60)) * 100);
         
-        // Reiniciar polling e timer
-        // TODO: Salvar gateway usado no banco de dados para recuperar corretamente
-        startPolling(stored.transactionId, gateway);
+        // Usar o gateway recuperado do banco de dados, ou o detectado se não estiver salvo
+        const recoveredGateway = stored.paymentGateway || gateway;
+        setPaymentGateway(recoveredGateway);
+        
+        // Reiniciar polling e timer com o gateway correto
+        startPolling(stored.transactionId, recoveredGateway);
         startTimer();
         
         toast.info("Transação anterior recuperada. Continue o pagamento.");
@@ -262,11 +268,13 @@ export default function PremiumCheckout() {
         setQrCodeBase64(response.data.qrcodeUrl);
 
         // Salvar no banco de dados
+        // Para VisionWallet, salvamos o paymentId (response.data.id) que é o que usamos no polling
         await saveTransactionToDatabase({
-          misticpayTransactionId: response.data.transactionId,
+          misticpayTransactionId: response.data.id, // paymentId para VisionWallet
           appTransactionId: appTransactionId,
           qrCode: response.data.copyPaste,
           qrCodeBase64: response.data.qrcodeUrl,
+          paymentGateway: 'visionwallet',
         });
 
         // Iniciar polling
@@ -297,6 +305,7 @@ export default function PremiumCheckout() {
           appTransactionId: appTransactionId,
           qrCode: response.data.copyPaste,
           qrCodeBase64: response.data.qrCodeBase64,
+          paymentGateway: 'misticpay',
         });
 
         // Iniciar polling
@@ -417,10 +426,13 @@ export default function PremiumCheckout() {
 
     try {
       // Atualizar transação no banco de dados
+      // Busca pela transação pendente do usuário (funciona para ambos os gateways)
       const { error: updateError } = await (supabase as any)
         .from("premium_transactions")
         .update({ status: "COMPLETO" })
-        .eq("misticpay_transaction_id", txId);
+        .eq("user_id", user!.id)
+        .eq("status", "PENDENTE");
+>>>>>>> 8f09891 (fix: corrigir configuração do vercel.json)
 
       if (updateError) {
         console.error("Error updating transaction status:", updateError);
