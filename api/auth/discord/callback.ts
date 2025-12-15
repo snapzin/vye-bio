@@ -105,12 +105,14 @@ export default async function handler(
     return res.redirect('/?error=missing_code');
   }
 
-  // Verifica o state (segurança)
+  // Verifica o state (segurança) - mas não bloqueia se não houver cookie (pode ser primeira vez)
   const cookies = req.headers?.cookie || '';
   const stateCookie = cookies.split(';').find(c => c.trim().startsWith('discord_oauth_state='));
   const stateFromCookie = stateCookie?.split('=')[1]?.trim();
   
-  if (req.query.state !== stateFromCookie) {
+  // Se temos state no query, valida contra o cookie
+  if (req.query.state && stateFromCookie && req.query.state !== stateFromCookie) {
+    console.error('State mismatch:', { queryState: req.query.state, cookieState: stateFromCookie });
     return res.redirect('/?error=invalid_state');
   }
 
@@ -253,11 +255,17 @@ export default async function handler(
       }
 
       // Gera um JWT token próprio usando função centralizada
-      const token = createToken({
-        userId,
-        discordId: discordUser.id,
-        email: discordUser.email || undefined,
-      });
+      let token: string;
+      try {
+        token = createToken({
+          userId,
+          discordId: discordUser.id,
+          email: discordUser.email || undefined,
+        });
+      } catch (tokenError: any) {
+        console.error('Error creating JWT token:', tokenError);
+        return res.redirect(`/?error=jwt_error&details=${encodeURIComponent(tokenError?.message || 'Token creation failed')}`);
+      }
 
       // Redireciona para o frontend com o token JWT
       return res.redirect(`/auth/callback?token=${encodeURIComponent(token)}&discord_id=${discordUser.id}`);
@@ -274,6 +282,18 @@ export default async function handler(
   } catch (error: any) {
     console.error('OAuth callback error:', error);
     console.error('Error stack:', error?.stack);
+    console.error('Error name:', error?.name);
+    console.error('Error message:', error?.message);
+    
+    // Retorna erro JSON em vez de redirect se for um erro crítico
+    if (error?.message?.includes('JWT_SECRET')) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(500).json({ 
+        error: 'JWT_SECRET não configurado',
+        details: 'Configure a variável de ambiente JWT_SECRET no Vercel'
+      });
+    }
+    
     return res.redirect(`/?error=oauth_error&details=${encodeURIComponent(error?.message || 'Unknown error')}`);
   }
 }
