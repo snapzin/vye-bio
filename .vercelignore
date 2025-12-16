@@ -1,5 +1,6 @@
-# Não ignorar arquivos da API - todos são necessários para as funções serverless
-# api/middleware/**
-# api/utils/**
-# api/auth/jwt.ts
+# Ignorar arquivos que não são funções serverless (são apenas módulos/utilitários)
+# Estes arquivos serão incluídos automaticamente como dependências quando importados
+api/middleware/**
+api/utils/**
+api/auth/jwt.ts
 

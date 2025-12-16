@@ -3,10 +3,25 @@
   "outputDirectory": "dist",
   "functions": {
     "api/auth/discord/callback.ts": {
-      "includeFiles": "api/auth/jwt.ts",
+      "includeFiles": "api/auth/jwt.ts,api/middleware/**,api/utils/**",
       "maxDuration": 30
     },
-    "api/**/*.ts": {
+    "api/auth/index.ts": {
+      "includeFiles": "api/auth/jwt.ts,api/middleware/**,api/utils/**",
+      "maxDuration": 30
+    },
+    "api/auth/discord.ts": {
+      "maxDuration": 30
+    },
+    "api/data/index.ts": {
+      "includeFiles": "api/middleware/**,api/utils/**",
+      "maxDuration": 30
+    },
+    "api/admin/index.ts": {
+      "includeFiles": "api/middleware/**,api/utils/**",
+      "maxDuration": 30
+    },
+    "api/valorant.ts": {
       "maxDuration": 30
     }
   },
