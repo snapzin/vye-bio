@@ -3,22 +3,22 @@
   "outputDirectory": "dist",
   "functions": {
     "api/auth/discord/callback.ts": {
-      "includeFiles": "lib/**",
+      "includeFiles": "api/_lib/**",
       "maxDuration": 30
     },
     "api/auth/index.ts": {
-      "includeFiles": "lib/**",
+      "includeFiles": "api/_lib/**",
       "maxDuration": 30
     },
     "api/auth/discord.ts": {
       "maxDuration": 30
     },
     "api/data/index.ts": {
-      "includeFiles": "lib/**",
+      "includeFiles": "api/_lib/**",
       "maxDuration": 30
     },
     "api/admin/index.ts": {
-      "includeFiles": "lib/**",
+      "includeFiles": "api/_lib/**",
       "maxDuration": 30
     },
     "api/valorant.ts": {

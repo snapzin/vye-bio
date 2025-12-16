@@ -3,12 +3,12 @@
  * Suporta: badges (assign, remove), users (list), premium (activate)
  */
 
-import { requireAuth } from '../../lib/middleware/auth.js';
-import { requireAdmin } from '../../lib/utils/permissions.js';
-import { setCorsHeaders, handleCorsPreflight } from '../../lib/utils/cors.js';
-import { handleError, getStatusCode } from '../../lib/utils/errors.js';
-import { setSecurityHeaders } from '../../lib/utils/securityHeaders.js';
-import { isValidUUID } from '../../lib/utils/validation.js';
+import { requireAuth } from '../_lib/middleware/auth.js';
+import { requireAdmin } from '../_lib/utils/permissions.js';
+import { setCorsHeaders, handleCorsPreflight } from '../_lib/utils/cors.js';
+import { handleError, getStatusCode } from '../_lib/utils/errors.js';
+import { setSecurityHeaders } from '../_lib/utils/securityHeaders.js';
+import { isValidUUID } from '../_lib/utils/validation.js';
 
 interface VercelRequest {
   method?: string;
