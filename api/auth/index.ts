@@ -83,23 +83,23 @@ async function executeHandler(
         }
       };
     }
-    const jwtModule = await import('./jwt.js');
+    const jwtModule = await import('../../lib/jwt.js');
     createToken = jwtModule.createToken;
     verifyToken = jwtModule.verifyToken;
-    const validationModule = await import('../utils/validation.js');
+    const validationModule = await import('../../lib/utils/validation.js');
     isValidEmail = validationModule.isValidEmail;
     isValidUsername = validationModule.isValidUsername;
     isValidPassword = validationModule.isValidPassword;
-    const corsModule = await import('../utils/cors.js');
+    const corsModule = await import('../../lib/utils/cors.js');
     setCorsHeaders = corsModule.setCorsHeaders;
     handleCorsPreflight = corsModule.handleCorsPreflight;
-    const errorsModule = await import('../utils/errors.js');
+    const errorsModule = await import('../../lib/utils/errors.js');
     handleError = errorsModule.handleError;
     getStatusCode = errorsModule.getStatusCode;
     formatError = errorsModule.formatError;
-    const securityHeadersModule = await import('../utils/securityHeaders.js');
+    const securityHeadersModule = await import('../../lib/utils/securityHeaders.js');
     setSecurityHeaders = securityHeadersModule.setSecurityHeaders;
-    const rateLimitModule = await import('../middleware/rateLimit.js');
+    const rateLimitModule = await import('../../lib/middleware/rateLimit.js');
     checkRateLimit = rateLimitModule.checkRateLimit;
     getRateLimitIdentifier = rateLimitModule.getRateLimitIdentifier;
     rateLimitConfigs = rateLimitModule.rateLimitConfigs;
