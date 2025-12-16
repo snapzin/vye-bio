@@ -188,8 +188,31 @@ export default async function handler(
 
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.text();
-        console.error('Discord token error:', errorData);
-        return res.redirect('/?error=token_exchange_failed');
+        const statusCode = tokenResponse.status;
+        console.error('Discord token error:', {
+          status: statusCode,
+          statusText: tokenResponse.statusText,
+          error: errorData,
+          redirectUri: DISCORD_REDIRECT_URI,
+          hasClientId: !!DISCORD_CLIENT_ID,
+          hasClientSecret: !!DISCORD_CLIENT_SECRET,
+          codeLength: req.query.code?.toString().length,
+        });
+        
+        // Retornar JSON com detalhes do erro para debug
+        try {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Content-Type', 'application/json');
+          return res.status(500).json({ 
+            error: 'Token exchange failed',
+            details: errorData,
+            status: statusCode,
+            redirectUri: DISCORD_REDIRECT_URI,
+            hint: 'Verifique se DISCORD_REDIRECT_URI corresponde exatamente ao configurado no Discord Developer Portal'
+          });
+        } catch (e) {
+          return res.redirect(`/?error=token_exchange_failed&details=${encodeURIComponent(errorData.substring(0, 100))}`);
+        }
       }
 
       const tokenData: DiscordTokenResponse = await tokenResponse.json();
