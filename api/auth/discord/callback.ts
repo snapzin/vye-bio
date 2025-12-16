@@ -171,6 +171,15 @@ export default async function handler(
     }
 
     try {
+      // Log antes de fazer a requisição
+      console.log('Exchanging code for token:', {
+        redirectUri: DISCORD_REDIRECT_URI,
+        hasCode: !!req.query.code,
+        codeLength: req.query.code?.toString().length,
+        clientIdLength: DISCORD_CLIENT_ID?.length,
+        clientSecretLength: DISCORD_CLIENT_SECRET?.length,
+      });
+      
       // Troca o código por um token de acesso
       const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
         method: 'POST',
