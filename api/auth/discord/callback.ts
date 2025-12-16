@@ -92,7 +92,7 @@ export default async function handler(
     const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
     const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
+    if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
       console.error('Discord credentials missing');
       try {
         res.setHeader('Access-Control-Allow-Origin', '*');
