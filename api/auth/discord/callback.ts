@@ -171,13 +171,19 @@ export default async function handler(
     }
 
     try {
-      // Log antes de fazer a requisição
+      // Log antes de fazer a requisição (mascarar valores sensíveis)
       console.log('Exchanging code for token:', {
         redirectUri: DISCORD_REDIRECT_URI,
+        redirectUriLength: DISCORD_REDIRECT_URI?.length,
+        redirectUriHasSpaces: DISCORD_REDIRECT_URI?.includes(' '),
         hasCode: !!req.query.code,
         codeLength: req.query.code?.toString().length,
+        clientId: DISCORD_CLIENT_ID ? `${DISCORD_CLIENT_ID.substring(0, 4)}...${DISCORD_CLIENT_ID.substring(DISCORD_CLIENT_ID.length - 4)}` : 'MISSING',
         clientIdLength: DISCORD_CLIENT_ID?.length,
+        clientIdHasSpaces: DISCORD_CLIENT_ID?.includes(' '),
+        clientSecret: DISCORD_CLIENT_SECRET ? `${DISCORD_CLIENT_SECRET.substring(0, 4)}...${DISCORD_CLIENT_SECRET.substring(DISCORD_CLIENT_SECRET.length - 4)}` : 'MISSING',
         clientSecretLength: DISCORD_CLIENT_SECRET?.length,
+        clientSecretHasSpaces: DISCORD_CLIENT_SECRET?.includes(' '),
       });
       
       // Troca o código por um token de acesso
@@ -187,11 +193,11 @@ export default async function handler(
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          client_id: DISCORD_CLIENT_ID,
-          client_secret: DISCORD_CLIENT_SECRET,
+          client_id: DISCORD_CLIENT_ID.trim(),
+          client_secret: DISCORD_CLIENT_SECRET.trim(),
           grant_type: 'authorization_code',
-          code: req.query.code as string,
-          redirect_uri: DISCORD_REDIRECT_URI,
+          code: (req.query.code as string).trim(),
+          redirect_uri: DISCORD_REDIRECT_URI.trim(),
         }),
       });
 
