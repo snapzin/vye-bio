@@ -62,6 +62,13 @@ export default async function handler(
 ) {
   // Wrapper global de tratamento de erros para evitar crashes não capturados
   try {
+    // Log inicial para debug
+    console.log('Discord callback handler started', {
+      method: req.method,
+      hasCode: !!req.query.code,
+      hasError: !!req.query.error,
+    });
+
     // Handle CORS preflight
     if (req.method === 'OPTIONS') {
       res.setHeader('Access-Control-Allow-Origin', '*');
@@ -86,16 +93,49 @@ export default async function handler(
     const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
   if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Type', 'application/json');
-    return res.status(500).json({ error: 'Discord credentials not configured' });
-  }
+      console.error('Discord credentials missing');
+      try {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(500).json({ 
+          error: 'Discord credentials not configured',
+          details: 'Configure DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET in Vercel'
+        });
+      } catch (e) {
+        console.error('Error sending Discord credentials error:', e);
+        return;
+      }
+    }
 
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Type', 'application/json');
-    return res.status(500).json({ error: 'Supabase not configured' });
-  }
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      console.error('Supabase credentials missing');
+      try {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(500).json({ 
+          error: 'Supabase not configured',
+          details: 'Configure SUPABASE_URL and SUPABASE_ANON_KEY in Vercel'
+        });
+      } catch (e) {
+        console.error('Error sending Supabase error:', e);
+        return;
+      }
+    }
+
+    if (!JWT_SECRET) {
+      console.error('JWT_SECRET missing');
+      try {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(500).json({ 
+          error: 'JWT_SECRET não configurado',
+          details: 'Configure a variável de ambiente JWT_SECRET no Vercel'
+        });
+      } catch (e) {
+        console.error('Error sending JWT_SECRET error:', e);
+        return;
+      }
+    }
 
   // Verifica se houve erro no OAuth
   if (req.query.error) {
@@ -259,33 +299,62 @@ export default async function handler(
       // Gera um JWT token próprio usando função centralizada
       let token: string;
       try {
+        console.log('Creating JWT token for user:', { userId, discordId: discordUser.id });
         token = createToken({
           userId,
           discordId: discordUser.id,
           email: discordUser.email || undefined,
         });
+        console.log('JWT token created successfully');
       } catch (tokenError: any) {
         console.error('Error creating JWT token:', tokenError);
         console.error('Token error details:', {
           message: tokenError?.message,
           stack: tokenError?.stack,
+          name: tokenError?.name,
         });
         
         // Se for erro de JWT_SECRET, retornar JSON em vez de redirect
         if (tokenError?.message?.includes('JWT_SECRET')) {
-          res.setHeader('Access-Control-Allow-Origin', '*');
-          res.setHeader('Content-Type', 'application/json');
-          return res.status(500).json({ 
-            error: 'JWT_SECRET não configurado',
-            details: 'Configure a variável de ambiente JWT_SECRET no Vercel'
-          });
+          try {
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Content-Type', 'application/json');
+            return res.status(500).json({ 
+              error: 'JWT_SECRET não configurado',
+              details: 'Configure a variável de ambiente JWT_SECRET no Vercel'
+            });
+          } catch (e) {
+            console.error('Error sending JWT_SECRET error response:', e);
+            return;
+          }
         }
         
-        return res.redirect(`/?error=jwt_error&details=${encodeURIComponent(tokenError?.message || 'Token creation failed')}`);
+        try {
+          return res.redirect(`/?error=jwt_error&details=${encodeURIComponent(tokenError?.message || 'Token creation failed')}`);
+        } catch (e) {
+          console.error('Error redirecting after JWT error:', e);
+          return;
+        }
       }
 
       // Redireciona para o frontend com o token JWT
-      return res.redirect(`/auth/callback?token=${encodeURIComponent(token)}&discord_id=${discordUser.id}`);
+      try {
+        console.log('Redirecting to frontend with token');
+        return res.redirect(`/auth/callback?token=${encodeURIComponent(token)}&discord_id=${discordUser.id}`);
+      } catch (redirectError: any) {
+        console.error('Error redirecting to frontend:', redirectError);
+        try {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Content-Type', 'application/json');
+          return res.status(500).json({ 
+            error: 'Erro ao redirecionar',
+            details: redirectError?.message || 'Unknown error'
+          });
+        } catch (e) {
+          console.error('Error sending redirect error response:', e);
+          return;
+        }
+      }
     } catch (error: any) {
       console.error('Supabase operation error:', error);
       console.error('Error details:', {
@@ -321,25 +390,49 @@ export default async function handler(
       message: globalError?.message,
       name: globalError?.name,
       code: globalError?.code,
+      type: typeof globalError,
     });
     
-    // Verificar se é erro de JWT_SECRET
-    if (globalError?.message?.includes('JWT_SECRET')) {
+    try {
+      // Verificar se é erro de JWT_SECRET
+      if (globalError?.message?.includes('JWT_SECRET')) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(500).json({
+          error: 'JWT_SECRET não configurado',
+          details: 'Configure a variável de ambiente JWT_SECRET no Vercel'
+        });
+      }
+      
+      // Verificar se é erro de importação
+      if (globalError?.message?.includes('Cannot find module') || globalError?.code === 'MODULE_NOT_FOUND') {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(500).json({
+          error: 'Erro ao carregar módulo',
+          details: globalError?.message || 'Module not found'
+        });
+      }
+      
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Content-Type', 'application/json');
       return res.status(500).json({
-        error: 'JWT_SECRET não configurado',
-        details: 'Configure a variável de ambiente JWT_SECRET no Vercel'
+        error: 'Internal server error',
+        message: globalError?.message || 'An unexpected error occurred',
+        details: process.env.NODE_ENV === 'development' ? globalError?.stack : undefined
       });
+    } catch (responseError: any) {
+      // Se falhar ao enviar resposta, logar o erro
+      console.error('Failed to send error response:', responseError);
+      console.error('Original error was:', globalError);
+      // Tentar retornar um erro básico
+      try {
+        res.status(500).json({ error: 'Internal server error' });
+      } catch (e) {
+        // Se tudo falhar, não fazer nada
+        console.error('Complete failure in error handling:', e);
+      }
     }
-    
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Type', 'application/json');
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: globalError?.message || 'An unexpected error occurred',
-      details: process.env.NODE_ENV === 'development' ? globalError?.stack : undefined
-    });
   }
 }
 
