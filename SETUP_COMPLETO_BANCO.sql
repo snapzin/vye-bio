@@ -183,7 +183,14 @@ CREATE TRIGGER update_profiles_updated_at
 
 -- Inserir badges padrão (apenas se não existirem)
 INSERT INTO public.badges (name, description, icon, rarity, category, unlock_condition) 
-SELECT * FROM (VALUES
+SELECT 
+  v.name,
+  v.description,
+  v.icon,
+  v.rarity::badge_rarity,
+  v.category::badge_category,
+  v.unlock_condition
+FROM (VALUES
   ('Early Adopter', 'One of the first to join', '⭐', 'rare', 'special', 'sign_up_early'),
   ('Verified', 'Verified account', '✓', 'uncommon', 'special', 'manual_verify'),
   ('Pro', 'Premium member', '💎', 'epic', 'premium', 'premium_subscription'),
