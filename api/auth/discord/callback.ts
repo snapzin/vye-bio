@@ -3,7 +3,7 @@
  */
 
 import * as crypto from 'crypto';
-import { createToken } from '../jwt.js';
+import { createToken } from '../jwt';
 
 interface VercelRequest {
   method?: string;
