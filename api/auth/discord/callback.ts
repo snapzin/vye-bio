@@ -312,6 +312,11 @@ export default async function handler(
       let token: string;
       try {
         console.log('Creating JWT token for user:', { userId, discordId: discordUser.id });
+        console.log('JWT_SECRET check before createToken:', { 
+          hasJwtSecret: !!JWT_SECRET,
+          jwtSecretLength: JWT_SECRET?.length || 0,
+          jwtSecretPreview: JWT_SECRET ? `${JWT_SECRET.substring(0, 4)}...` : 'undefined'
+        });
         token = createToken({
           userId,
           discordId: discordUser.id,
