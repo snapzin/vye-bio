@@ -171,43 +171,43 @@ export default async function handler(
     }
 
     try {
-    // Troca o código por um token de acesso
-    const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: DISCORD_CLIENT_ID,
-        client_secret: DISCORD_CLIENT_SECRET,
-        grant_type: 'authorization_code',
-        code: req.query.code as string,
-        redirect_uri: DISCORD_REDIRECT_URI,
-      }),
-    });
+      // Troca o código por um token de acesso
+      const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: DISCORD_CLIENT_ID,
+          client_secret: DISCORD_CLIENT_SECRET,
+          grant_type: 'authorization_code',
+          code: req.query.code as string,
+          redirect_uri: DISCORD_REDIRECT_URI,
+        }),
+      });
 
-    if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.text();
-      console.error('Discord token error:', errorData);
-      return res.redirect('/?error=token_exchange_failed');
-    }
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.text();
+        console.error('Discord token error:', errorData);
+        return res.redirect('/?error=token_exchange_failed');
+      }
 
-    const tokenData: DiscordTokenResponse = await tokenResponse.json();
+      const tokenData: DiscordTokenResponse = await tokenResponse.json();
 
-    // Busca informações do usuário no Discord
-    const userResponse = await fetch('https://discord.com/api/users/@me', {
-      headers: {
-        Authorization: `Bearer ${tokenData.access_token}`,
-      },
-    });
+      // Busca informações do usuário no Discord
+      const userResponse = await fetch('https://discord.com/api/users/@me', {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`,
+        },
+      });
 
-    if (!userResponse.ok) {
-      return res.redirect('/?error=user_fetch_failed');
-    }
+      if (!userResponse.ok) {
+        return res.redirect('/?error=user_fetch_failed');
+      }
 
-    const discordUser: DiscordUser = await userResponse.json();
+      const discordUser: DiscordUser = await userResponse.json();
 
-    console.log('Discord user fetched:', { id: discordUser.id, username: discordUser.username });
+      console.log('Discord user fetched:', { id: discordUser.id, username: discordUser.username });
 
     try {
       // Conecta ao Supabase apenas como banco de dados (sem auth)
@@ -377,22 +377,22 @@ export default async function handler(
       });
       return res.redirect(`/?error=supabase_error&details=${encodeURIComponent(error?.message || 'Unknown error')}`);
     }
-  } catch (error: any) {
-    console.error('OAuth callback error:', error);
-    console.error('Error stack:', error?.stack);
-    console.error('Error name:', error?.name);
-    console.error('Error message:', error?.message);
-    
-    // Retorna erro JSON em vez de redirect se for um erro crítico
-    if (error?.message?.includes('JWT_SECRET')) {
-      res.setHeader('Content-Type', 'application/json');
-      return res.status(500).json({ 
-        error: 'JWT_SECRET não configurado',
-        details: 'Configure a variável de ambiente JWT_SECRET no Vercel'
-      });
-    }
-    
-    return res.redirect(`/?error=oauth_error&details=${encodeURIComponent(error?.message || 'Unknown error')}`);
+    } catch (error: any) {
+      console.error('OAuth callback error:', error);
+      console.error('Error stack:', error?.stack);
+      console.error('Error name:', error?.name);
+      console.error('Error message:', error?.message);
+      
+      // Retorna erro JSON em vez de redirect se for um erro crítico
+      if (error?.message?.includes('JWT_SECRET')) {
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(500).json({ 
+          error: 'JWT_SECRET não configurado',
+          details: 'Configure a variável de ambiente JWT_SECRET no Vercel'
+        });
+      }
+      
+      return res.redirect(`/?error=oauth_error&details=${encodeURIComponent(error?.message || 'Unknown error')}`);
   }
   } catch (globalError: any) {
     // Captura qualquer erro não tratado anteriormente
