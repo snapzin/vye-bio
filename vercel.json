@@ -2,6 +2,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
+    "api/auth/discord/callback.ts": {
+      "includeFiles": "api/auth/jwt.ts",
+      "maxDuration": 30
+    },
     "api/**/*.ts": {
       "maxDuration": 30
     }
