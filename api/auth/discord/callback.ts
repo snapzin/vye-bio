@@ -91,6 +91,18 @@ export default async function handler(
     // Para Supabase, tenta sem VITE_ primeiro (serverless functions não têm acesso a VITE_*)
     const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
     const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    // Verificar JWT_SECRET também
+    const JWT_SECRET = process.env.JWT_SECRET || process.env.VITE_JWT_SECRET;
+
+    console.log('Environment variables check:', {
+      hasDiscordClientId: !!DISCORD_CLIENT_ID,
+      hasDiscordClientSecret: !!DISCORD_CLIENT_SECRET,
+      hasDiscordRedirectUri: !!DISCORD_REDIRECT_URI,
+      hasSupabaseUrl: !!SUPABASE_URL,
+      hasSupabaseKey: !!SUPABASE_ANON_KEY,
+      hasJwtSecret: !!JWT_SECRET,
+    });
+
 
     if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
       console.error('Discord credentials missing');
