@@ -139,26 +139,26 @@ export default async function handler(
 
     // Verifica se houve erro no OAuth
     if (req.query.error) {
-    return res.redirect(`/?error=${encodeURIComponent(req.query.error as string)}`);
-  }
+      return res.redirect(`/?error=${encodeURIComponent(req.query.error as string)}`);
+    }
 
-  // Verifica se temos o código de autorização
-  if (!req.query.code) {
-    return res.redirect('/?error=missing_code');
-  }
+    // Verifica se temos o código de autorização
+    if (!req.query.code) {
+      return res.redirect('/?error=missing_code');
+    }
 
-  // Verifica o state (segurança) - mas não bloqueia se não houver cookie (pode ser primeira vez)
-  const cookies = req.headers?.cookie || '';
-  const stateCookie = cookies.split(';').find(c => c.trim().startsWith('discord_oauth_state='));
-  const stateFromCookie = stateCookie?.split('=')[1]?.trim();
-  
-  // Se temos state no query, valida contra o cookie
-  if (req.query.state && stateFromCookie && req.query.state !== stateFromCookie) {
-    console.error('State mismatch:', { queryState: req.query.state, cookieState: stateFromCookie });
-    return res.redirect('/?error=invalid_state');
-  }
+    // Verifica o state (segurança) - mas não bloqueia se não houver cookie (pode ser primeira vez)
+    const cookies = req.headers?.cookie || '';
+    const stateCookie = cookies.split(';').find(c => c.trim().startsWith('discord_oauth_state='));
+    const stateFromCookie = stateCookie?.split('=')[1]?.trim();
+    
+    // Se temos state no query, valida contra o cookie
+    if (req.query.state && stateFromCookie && req.query.state !== stateFromCookie) {
+      console.error('State mismatch:', { queryState: req.query.state, cookieState: stateFromCookie });
+      return res.redirect('/?error=invalid_state');
+    }
 
-  try {
+    try {
     // Troca o código por um token de acesso
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
