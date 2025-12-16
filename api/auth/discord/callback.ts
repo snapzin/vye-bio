@@ -137,8 +137,8 @@ export default async function handler(
       }
     }
 
-  // Verifica se houve erro no OAuth
-  if (req.query.error) {
+    // Verifica se houve erro no OAuth
+    if (req.query.error) {
     return res.redirect(`/?error=${encodeURIComponent(req.query.error as string)}`);
   }
 
