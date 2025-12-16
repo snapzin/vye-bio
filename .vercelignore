@@ -1,6 +1,10 @@
-# Ignorar arquivos que não são funções serverless (são apenas módulos/utilitários)
-# Estes arquivos serão incluídos automaticamente como dependências quando importados
-api/middleware/**
-api/utils/**
-api/auth/jwt.ts
+# Vercel só conta como função serverless arquivos que exportam "export default"
+# Apenas 6 arquivos exportam default (dentro do limite de 12):
+# - api/auth/index.ts
+# - api/auth/discord.ts
+# - api/auth/discord/callback.ts
+# - api/data/index.ts
+# - api/admin/index.ts
+# - api/valorant.ts
+# Os outros arquivos (middleware, utils, jwt.ts) não exportam default, então não são contados
 
