@@ -223,7 +223,15 @@ export default async function handler(
             details: errorData,
             status: statusCode,
             redirectUri: DISCORD_REDIRECT_URI,
-            hint: 'Verifique se DISCORD_REDIRECT_URI corresponde exatamente ao configurado no Discord Developer Portal'
+            debug: {
+              clientIdLength: DISCORD_CLIENT_ID?.length || 0,
+              clientIdHasWhitespace: /\s/.test(DISCORD_CLIENT_ID || ''),
+              clientSecretLength: DISCORD_CLIENT_SECRET?.length || 0,
+              clientSecretHasWhitespace: /\s/.test(DISCORD_CLIENT_SECRET || ''),
+              redirectUriLength: DISCORD_REDIRECT_URI?.length || 0,
+              redirectUriHasWhitespace: /\s/.test(DISCORD_REDIRECT_URI || ''),
+            },
+            hint: 'invalid_client = DISCORD_CLIENT_ID/DISCORD_CLIENT_SECRET incorretos (ou com whitespace). Confira no Discord Developer Portal e no Vercel.'
           });
         } catch (e) {
           return res.redirect(`/?error=token_exchange_failed&details=${encodeURIComponent(errorData.substring(0, 100))}`);
