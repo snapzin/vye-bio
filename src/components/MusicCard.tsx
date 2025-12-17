@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Play, Pause, Music } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import type { Profile } from "@/hooks/useProfile";
-import { isYouTubeUrl, extractYouTubeVideoId } from "@/lib/youtube";
+import { isYouTubeUrl, extractYouTubeVideoId, getYouTubeThumbnail } from "@/lib/youtube";
 import { useYouTubePlayer } from "@/hooks/useYouTubePlayer";
 
 interface MusicCardProps {
@@ -200,19 +200,45 @@ const MusicCard = ({ profile }: MusicCardProps) => {
       <div className="rounded-2xl bg-secondary/50 backdrop-blur-sm border border-border/50 overflow-hidden w-full">
         <div className="flex gap-4 p-4">
           {/* Image - lado esquerdo */}
-          {profile.music_image_url ? (
-            <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden relative">
-              <img 
-                src={profile.music_image_url} 
-                alt={profile.music_title || "Música"}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ) : (
-            <div className="w-20 h-20 flex-shrink-0 rounded-lg bg-gradient-to-br from-accent/20 to-purple-500/20 flex items-center justify-center">
-              <Music className="w-8 h-8 text-muted-foreground/50" />
-            </div>
-          )}
+          {(() => {
+            // Se for YouTube, usar thumbnail do vídeo
+            if (isYouTube && youtubeVideoId) {
+              return (
+                <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden relative">
+                  <img 
+                    src={getYouTubeThumbnail(youtubeVideoId, 'maxresdefault')}
+                    alt={profile.music_title || "Música"}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback para hqdefault se maxresdefault não existir
+                      const target = e.target as HTMLImageElement;
+                      if (target.src.includes('maxresdefault')) {
+                        target.src = getYouTubeThumbnail(youtubeVideoId, 'hqdefault');
+                      }
+                    }}
+                  />
+                </div>
+              );
+            }
+            // Se tiver imagem customizada, usar ela
+            if (profile.music_image_url) {
+              return (
+                <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden relative">
+                  <img 
+                    src={profile.music_image_url} 
+                    alt={profile.music_title || "Música"}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              );
+            }
+            // Fallback para ícone padrão
+            return (
+              <div className="w-20 h-20 flex-shrink-0 rounded-lg bg-gradient-to-br from-accent/20 to-purple-500/20 flex items-center justify-center">
+                <Music className="w-8 h-8 text-muted-foreground/50" />
+              </div>
+            );
+          })()}
           
           {/* Player Controls - lado direito */}
           <div className="flex-1 min-w-0 flex flex-col justify-center">

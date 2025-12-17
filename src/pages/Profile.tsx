@@ -16,7 +16,7 @@ import ValorantStatusCard from "@/components/ValorantStatusCard";
 import MusicCard from "@/components/MusicCard";
 import { getSocialIcon } from "@/lib/socialIcons";
 import { BadgeIcon } from "@/lib/badgeIcons";
-import { isYouTubeUrl, extractYouTubeVideoId } from "@/lib/youtube";
+import { isYouTubeUrl, extractYouTubeVideoId, getYouTubeThumbnail } from "@/lib/youtube";
 import { useYouTubePlayer } from "@/hooks/useYouTubePlayer";
 
 const rarityColors: Record<string, string> = {
@@ -36,6 +36,7 @@ function FloatingMusicPlayer({
   onTogglePlay,
   onProgressClick,
   formatTime,
+  youtubeVideoId,
 }: {
   profile: Profile;
   isPlaying: boolean;
@@ -44,8 +45,10 @@ function FloatingMusicPlayer({
   onTogglePlay: () => void;
   onProgressClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   formatTime: (seconds: number) => string;
+  youtubeVideoId: string | null;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const isYouTube = youtubeVideoId !== null;
 
   return (
     <>
@@ -55,17 +58,39 @@ function FloatingMusicPlayer({
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
         onClick={() => setIsExpanded(!isExpanded)}
-        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary text-primary-foreground shadow-2xl hover:scale-110 transition-transform flex items-center justify-center"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary text-primary-foreground shadow-2xl hover:scale-110 transition-transform flex items-center justify-center overflow-hidden"
       >
-        {profile.music_image_url ? (
-          <img 
-            src={profile.music_image_url} 
-            alt={profile.music_title || "Música"}
-            className="w-full h-full rounded-full object-cover"
-          />
-        ) : (
-          <Music className="w-6 h-6" />
-        )}
+        {(() => {
+          // Se for YouTube, usar thumbnail do vídeo
+          if (isYouTube && youtubeVideoId) {
+            return (
+              <img 
+                src={getYouTubeThumbnail(youtubeVideoId, 'maxresdefault')}
+                alt={profile.music_title || "Música"}
+                className="w-full h-full rounded-full object-cover"
+                onError={(e) => {
+                  // Fallback para hqdefault se maxresdefault não existir
+                  const target = e.target as HTMLImageElement;
+                  if (target.src.includes('maxresdefault')) {
+                    target.src = getYouTubeThumbnail(youtubeVideoId, 'hqdefault');
+                  }
+                }}
+              />
+            );
+          }
+          // Se tiver imagem customizada, usar ela
+          if (profile.music_image_url) {
+            return (
+              <img 
+                src={profile.music_image_url} 
+                alt={profile.music_title || "Música"}
+                className="w-full h-full rounded-full object-cover"
+              />
+            );
+          }
+          // Fallback para ícone padrão
+          return <Music className="w-6 h-6" />;
+        })()}
         {isPlaying && (
           <motion.div
             className="absolute inset-0 rounded-full border-2 border-primary-foreground/30"
@@ -99,19 +124,45 @@ function FloatingMusicPlayer({
 
               {/* Music Info */}
               <div className="flex items-center gap-3 mb-4">
-                {profile.music_image_url ? (
-                  <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
-                    <img 
-                      src={profile.music_image_url} 
-                      alt={profile.music_title || "Música"}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-16 h-16 flex-shrink-0 rounded-lg bg-gradient-to-br from-accent/20 to-purple-500/20 flex items-center justify-center">
-                    <Music className="w-8 h-8 text-muted-foreground/50" />
-                  </div>
-                )}
+                {(() => {
+                  // Se for YouTube, usar thumbnail do vídeo
+                  if (isYouTube && youtubeVideoId) {
+                    return (
+                      <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
+                        <img 
+                          src={getYouTubeThumbnail(youtubeVideoId, 'maxresdefault')}
+                          alt={profile.music_title || "Música"}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback para hqdefault se maxresdefault não existir
+                            const target = e.target as HTMLImageElement;
+                            if (target.src.includes('maxresdefault')) {
+                              target.src = getYouTubeThumbnail(youtubeVideoId, 'hqdefault');
+                            }
+                          }}
+                        />
+                      </div>
+                    );
+                  }
+                  // Se tiver imagem customizada, usar ela
+                  if (profile.music_image_url) {
+                    return (
+                      <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
+                        <img 
+                          src={profile.music_image_url} 
+                          alt={profile.music_title || "Música"}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    );
+                  }
+                  // Fallback para ícone padrão
+                  return (
+                    <div className="w-16 h-16 flex-shrink-0 rounded-lg bg-gradient-to-br from-accent/20 to-purple-500/20 flex items-center justify-center">
+                      <Music className="w-8 h-8 text-muted-foreground/50" />
+                    </div>
+                  );
+                })()}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground truncate">
                     {profile.music_title || "Música"}
@@ -716,6 +767,7 @@ const Profile = () => {
           onTogglePlay={togglePlay}
           onProgressClick={handleProgressClick}
           formatTime={formatTime}
+          youtubeVideoId={youtubeVideoId}
         />
       )}
     </div>

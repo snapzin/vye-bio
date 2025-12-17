@@ -66,3 +66,13 @@ export function getYouTubeEmbedUrl(videoId: string, autoplay = false, loop = tru
   return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
 }
 
+/**
+ * Gets YouTube video thumbnail URL
+ * @param videoId - YouTube video ID
+ * @param quality - Thumbnail quality: 'maxresdefault' (highest), 'hqdefault' (high), 'mqdefault' (medium), 'sddefault' (standard)
+ * @returns URL to the thumbnail image
+ */
+export function getYouTubeThumbnail(videoId: string, quality: 'maxresdefault' | 'hqdefault' | 'mqdefault' | 'sddefault' = 'maxresdefault'): string {
+  return `https://img.youtube.com/vi/${videoId}/${quality}.jpg`;
+}
+
