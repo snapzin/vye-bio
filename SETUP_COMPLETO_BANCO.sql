@@ -52,6 +52,12 @@ ALTER TABLE public.profiles
 ADD COLUMN IF NOT EXISTS email TEXT,
 ADD COLUMN IF NOT EXISTS password_hash TEXT;
 
+-- Campos usados pelo frontend (Valorant widgets)
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS valorant_name TEXT,
+ADD COLUMN IF NOT EXISTS valorant_tag TEXT,
+ADD COLUMN IF NOT EXISTS valorant_puuid TEXT;
+
 -- Index para lookup por email (se não existir)
 CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email) WHERE email IS NOT NULL;
 
@@ -67,6 +73,10 @@ CREATE TABLE IF NOT EXISTS public.user_links (
   clicks_count INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
+
+-- Campo usado no frontend para cor do ícone do link
+ALTER TABLE public.user_links
+ADD COLUMN IF NOT EXISTS icon_color TEXT;
 
 -- Criar tabela badges
 CREATE TABLE IF NOT EXISTS public.badges (
@@ -90,6 +100,13 @@ CREATE TABLE IF NOT EXISTS public.user_badges (
   is_displayed BOOLEAN DEFAULT true,
   UNIQUE(user_id, badge_id)
 );
+
+-- Campo usado no frontend para ordenação
+ALTER TABLE public.user_badges
+ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
+
+CREATE INDEX IF NOT EXISTS idx_user_badges_user_sort
+ON public.user_badges(user_id, sort_order);
 
 -- Criar tabela user_videos
 CREATE TABLE IF NOT EXISTS public.user_videos (
