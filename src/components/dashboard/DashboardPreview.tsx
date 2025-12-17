@@ -32,7 +32,7 @@ export function DashboardPreview() {
   // YouTube player hook
   const youtubePlayer = useYouTubePlayer({
     videoId: youtubeVideoId || '',
-    autoplay: false,
+    autoplay: true,
     loop: true,
     volume: 30,
     onStateChange: (state) => {
@@ -121,13 +121,28 @@ export function DashboardPreview() {
       if (!cancelled) setCurrentTime(audioElement.currentTime);
     };
     const handleLoadedMetadata = () => {
-      if (!cancelled) setDuration(audioElement.duration);
+      if (!cancelled) {
+        setDuration(audioElement.duration);
+        // Auto-play when metadata is loaded
+        audioElement.play().catch((error) => {
+          console.error('Error auto-playing audio:', error);
+        });
+      }
+    };
+    const handleCanPlay = () => {
+      // Tenta tocar quando o áudio estiver pronto
+      if (!cancelled) {
+        audioElement.play().catch((error) => {
+          console.error('Error auto-playing audio:', error);
+        });
+      }
     };
     
     audioElement.addEventListener('play', handlePlay);
     audioElement.addEventListener('pause', handlePause);
     audioElement.addEventListener('timeupdate', handleTimeUpdate);
     audioElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audioElement.addEventListener('canplay', handleCanPlay);
     
     audioRef.current = audioElement;
 
@@ -138,6 +153,7 @@ export function DashboardPreview() {
       audioElement.removeEventListener('pause', handlePause);
       audioElement.removeEventListener('timeupdate', handleTimeUpdate);
       audioElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audioElement.removeEventListener('canplay', handleCanPlay);
     };
   }, [displayProfile?.music_url, isYouTube]);
 

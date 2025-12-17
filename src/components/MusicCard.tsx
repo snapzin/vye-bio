@@ -22,7 +22,7 @@ const MusicCard = ({ profile }: MusicCardProps) => {
   // YouTube player hook
   const youtubePlayer = useYouTubePlayer({
     videoId: youtubeVideoId || '',
-    autoplay: false,
+    autoplay: true,
     loop: true,
     volume: 50,
     onStateChange: (state) => {
@@ -47,20 +47,34 @@ const MusicCard = ({ profile }: MusicCardProps) => {
     audioRef.current = audio;
 
     const updateTime = () => setCurrentTime(audio.currentTime);
-    const updateDuration = () => setDuration(audio.duration);
+    const updateDuration = () => {
+      setDuration(audio.duration);
+      // Auto-play when metadata is loaded
+      audio.play().catch((error) => {
+        console.error('Error auto-playing audio:', error);
+      });
+    };
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
+    };
+    const handleCanPlay = () => {
+      // Tenta tocar quando o áudio estiver pronto
+      audio.play().catch((error) => {
+        console.error('Error auto-playing audio:', error);
+      });
     };
 
     audio.addEventListener("timeupdate", updateTime);
     audio.addEventListener("loadedmetadata", updateDuration);
     audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("canplay", handleCanPlay);
 
     return () => {
       audio.removeEventListener("timeupdate", updateTime);
       audio.removeEventListener("loadedmetadata", updateDuration);
       audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("canplay", handleCanPlay);
       audio.pause();
       audio.src = "";
     };

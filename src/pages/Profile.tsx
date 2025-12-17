@@ -187,7 +187,7 @@ const Profile = () => {
   // YouTube player hook
   const youtubePlayer = useYouTubePlayer({
     videoId: youtubeVideoId || '',
-    autoplay: false,
+    autoplay: true,
     loop: true,
     volume: 50,
     onReady: () => {
@@ -252,8 +252,23 @@ const Profile = () => {
       const handlePause = () => setIsPlaying(false);
       const handleEnded = () => setIsPlaying(false);
       const handleTimeUpdate = () => setCurrentTime(audioElement.currentTime);
-      const handleLoadedMetadata = () => setDuration(audioElement.duration);
+      const handleLoadedMetadata = () => {
+        setDuration(audioElement.duration);
+        // Auto-play when metadata is loaded
+        audioElement.play().catch((error) => {
+          console.error('Error auto-playing audio:', error);
+          // Autoplay pode falhar devido a políticas do navegador - isso é normal
+        });
+      };
       const handleDurationChange = () => setDuration(audioElement.duration);
+      const handleCanPlay = () => {
+        // Tenta tocar quando o áudio estiver pronto
+        if (!isPlaying) {
+          audioElement.play().catch((error) => {
+            console.error('Error auto-playing audio:', error);
+          });
+        }
+      };
       
       audioElement.addEventListener('play', handlePlay);
       audioElement.addEventListener('pause', handlePause);
@@ -261,6 +276,7 @@ const Profile = () => {
       audioElement.addEventListener('timeupdate', handleTimeUpdate);
       audioElement.addEventListener('loadedmetadata', handleLoadedMetadata);
       audioElement.addEventListener('durationchange', handleDurationChange);
+      audioElement.addEventListener('canplay', handleCanPlay);
       
       setAudio(audioElement);
 
@@ -272,6 +288,7 @@ const Profile = () => {
         audioElement.removeEventListener('timeupdate', handleTimeUpdate);
         audioElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
         audioElement.removeEventListener('durationchange', handleDurationChange);
+        audioElement.removeEventListener('canplay', handleCanPlay);
       };
     } else {
       setAudio(null);
