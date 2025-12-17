@@ -118,6 +118,8 @@ DROP POLICY IF EXISTS "Links are publicly viewable" ON public.user_links;
 DROP POLICY IF EXISTS "Users can manage own links" ON public.user_links;
 DROP POLICY IF EXISTS "Allow link management" ON public.user_links;
 
+DROP POLICY IF EXISTS "Badges are publicly viewable" ON public.badges;
+
 DROP POLICY IF EXISTS "User badges are publicly viewable" ON public.user_badges;
 DROP POLICY IF EXISTS "Users can toggle own badge display" ON public.user_badges;
 DROP POLICY IF EXISTS "Allow badge display toggle" ON public.user_badges;
