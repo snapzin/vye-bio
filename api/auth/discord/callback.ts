@@ -94,14 +94,6 @@ export default async function handler(
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Tenta pegar das variáveis de ambiente (prioriza sem VITE_ para serverless functions)
-    const DISCORD_CLIENT_ID = cleanEnv(process.env.DISCORD_CLIENT_ID || process.env.VITE_DISCORD_CLIENT_ID);
-    const DISCORD_CLIENT_SECRET = cleanEnv(process.env.DISCORD_CLIENT_SECRET || process.env.VITE_DISCORD_CLIENT_SECRET);
-    const DISCORD_REDIRECT_URI = cleanEnv(
-      process.env.DISCORD_REDIRECT_URI ||
-      process.env.VITE_DISCORD_REDIRECT_URI ||
-      `${req.url?.split('/api')[0] || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:8080')}/api/auth/discord/callback`
-    );
     const cleanEnv = (v?: string) =>
       typeof v === 'string'
         ? v
@@ -113,6 +105,15 @@ export default async function handler(
             .trim()
         : v;
 
+    // Tenta pegar das variáveis de ambiente (prioriza sem VITE_ para serverless functions)
+    const DISCORD_CLIENT_ID = cleanEnv(process.env.DISCORD_CLIENT_ID || process.env.VITE_DISCORD_CLIENT_ID);
+    const DISCORD_CLIENT_SECRET = cleanEnv(process.env.DISCORD_CLIENT_SECRET || process.env.VITE_DISCORD_CLIENT_SECRET);
+    const DISCORD_REDIRECT_URI = cleanEnv(
+      process.env.DISCORD_REDIRECT_URI ||
+        process.env.VITE_DISCORD_REDIRECT_URI ||
+        `${req.url?.split('/api')[0] || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:8080')}/api/auth/discord/callback`
+    );
+
     // Para Supabase, tenta sem VITE_ primeiro (serverless functions não têm acesso a VITE_*)
     const SUPABASE_URL = cleanEnv(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
     const SUPABASE_ANON_KEY = cleanEnv(
@@ -121,7 +122,7 @@ export default async function handler(
         process.env.VITE_SUPABASE_PUBLISHABLE_KEY
     );
     // Verificar JWT_SECRET também
-    const JWT_SECRET = process.env.JWT_SECRET || process.env.VITE_JWT_SECRET;
+    const JWT_SECRET = cleanEnv(process.env.JWT_SECRET || process.env.VITE_JWT_SECRET);
 
     console.log('Environment variables check:', {
       hasDiscordClientId: !!DISCORD_CLIENT_ID,
