@@ -12,6 +12,7 @@ import { ColorPicker } from "@/components/ui/color-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
 import { motion } from "framer-motion";
+import { isYouTubeUrl, fetchYouTubeMetadata } from "@/lib/youtube";
 
 const avatarShapes = [
   { id: "square", label: "Square", icon: Square },
@@ -112,6 +113,54 @@ export function DashboardAppearance() {
       [e.target.name]: e.target.value
     }));
   };
+
+  // Auto-fetch YouTube metadata when URL changes
+  const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+  const lastFetchedUrlRef = useRef<string>('');
+
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      const musicUrl = formData.music_url?.trim();
+      if (!musicUrl || !isYouTubeUrl(musicUrl)) {
+        lastFetchedUrlRef.current = '';
+        return;
+      }
+
+      // Don't fetch if we already fetched for this URL
+      if (lastFetchedUrlRef.current === musicUrl) {
+        return;
+      }
+
+      // Only fetch if title or artist is empty (to avoid overwriting user edits)
+      // But allow fetching if URL changed (user pasted new URL)
+      if (formData.music_title && formData.music_artist && lastFetchedUrlRef.current) {
+        return;
+      }
+
+      setIsFetchingMetadata(true);
+      try {
+        const metadata = await fetchYouTubeMetadata(musicUrl);
+        if (metadata) {
+          lastFetchedUrlRef.current = musicUrl;
+          setFormData(prev => ({
+            ...prev,
+            // Only update if field is empty or if URL changed
+            music_title: prev.music_title || metadata.title || '',
+            music_artist: prev.music_artist || metadata.author_name || '',
+          }));
+          toast.success("Metadados do YouTube carregados!");
+        }
+      } catch (error) {
+        console.error('Error fetching YouTube metadata:', error);
+      } finally {
+        setIsFetchingMetadata(false);
+      }
+    };
+
+    // Debounce to avoid too many requests
+    const timeoutId = setTimeout(fetchMetadata, 1500);
+    return () => clearTimeout(timeoutId);
+  }, [formData.music_url]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -526,26 +575,43 @@ export function DashboardAppearance() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Título (opcional)</label>
+                  <label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1.5">
+                    Título (editável)
+                    {isFetchingMetadata && (
+                      <Loader2 className="w-3 h-3 animate-spin text-accent" />
+                    )}
+                  </label>
                   <Input
                     name="music_title"
                     value={formData.music_title}
                     onChange={handleInputChange}
                     placeholder="Ex: Minha Música"
                     className="bg-secondary/50"
+                    disabled={isFetchingMetadata}
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Artista (opcional)</label>
+                  <label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1.5">
+                    Artista (editável)
+                    {isFetchingMetadata && (
+                      <Loader2 className="w-3 h-3 animate-spin text-accent" />
+                    )}
+                  </label>
                   <Input
                     name="music_artist"
                     value={formData.music_artist}
                     onChange={handleInputChange}
                     placeholder="Ex: Eu"
                     className="bg-secondary/50"
+                    disabled={isFetchingMetadata}
                   />
                 </div>
               </div>
+              {isYouTubeUrl(formData.music_url) && (
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  💡 Título e artista são preenchidos automaticamente do YouTube. Você pode editá-los livremente.
+                </p>
+              )}
             </div>
           </div>
         </div>

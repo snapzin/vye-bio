@@ -167,9 +167,21 @@ function FloatingMusicPlayer({
                   <p className="text-sm font-semibold text-foreground truncate">
                     {profile.music_title || "Música"}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {profile.music_artist || "Artista desconhecido"}
-                  </p>
+                  {isYouTube && youtubeVideoId ? (
+                    <a
+                      href={`https://www.youtube.com/watch?v=${youtubeVideoId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-muted-foreground hover:text-accent truncate block transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {profile.music_artist || "Artista desconhecido"}
+                    </a>
+                  ) : (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {profile.music_artist || "Artista desconhecido"}
+                    </p>
+                  )}
                 </div>
               </div>
 

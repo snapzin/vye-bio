@@ -76,3 +76,49 @@ export function getYouTubeThumbnail(videoId: string, quality: 'maxresdefault' | 
   return `https://img.youtube.com/vi/${videoId}/${quality}.jpg`;
 }
 
+/**
+ * YouTube video metadata from oEmbed API
+ */
+export interface YouTubeMetadata {
+  title: string;
+  author_name: string;
+  author_url: string;
+  thumbnail_url: string;
+  html: string;
+}
+
+/**
+ * Fetches YouTube video metadata using oEmbed API
+ * @param videoUrl - Full YouTube URL or video ID
+ * @returns Promise with video metadata or null if error
+ */
+export async function fetchYouTubeMetadata(videoUrl: string): Promise<YouTubeMetadata | null> {
+  try {
+    // Extract video ID if needed
+    const videoInfo = extractYouTubeVideoId(videoUrl);
+    if (!videoInfo || !videoInfo.isValid) {
+      return null;
+    }
+
+    // Construct full YouTube URL for oEmbed
+    const fullUrl = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')
+      ? videoUrl
+      : `https://www.youtube.com/watch?v=${videoInfo.videoId}`;
+
+    // Use oEmbed API (no API key required)
+    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(fullUrl)}&format=json`;
+    
+    const response = await fetch(oembedUrl);
+    
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json() as YouTubeMetadata;
+    return data;
+  } catch (error) {
+    console.error('Error fetching YouTube metadata:', error);
+    return null;
+  }
+}
+
