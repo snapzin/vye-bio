@@ -5,6 +5,16 @@
 import * as crypto from 'crypto';
 import { createToken } from '../../_lib/jwt.js';
 
+function cleanEnv(v?: string): string | undefined {
+  if (typeof v !== 'string') return v;
+  return v
+    .replace(/\\r\\n/g, '')
+    .replace(/\\n/g, '')
+    .replace(/\\r/g, '')
+    .replace(/[\r\n]/g, '')
+    .trim();
+}
+
 interface VercelRequest {
   method?: string;
   query: {
@@ -85,9 +95,13 @@ export default async function handler(
     }
 
     // Tenta pegar das variáveis de ambiente (prioriza sem VITE_ para serverless functions)
-    const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || process.env.VITE_DISCORD_CLIENT_ID;
-    const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || process.env.VITE_DISCORD_CLIENT_SECRET;
-    const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || process.env.VITE_DISCORD_REDIRECT_URI || `${req.url?.split('/api')[0] || 'http://localhost:8080'}/api/auth/discord/callback`;
+    const DISCORD_CLIENT_ID = cleanEnv(process.env.DISCORD_CLIENT_ID || process.env.VITE_DISCORD_CLIENT_ID);
+    const DISCORD_CLIENT_SECRET = cleanEnv(process.env.DISCORD_CLIENT_SECRET || process.env.VITE_DISCORD_CLIENT_SECRET);
+    const DISCORD_REDIRECT_URI = cleanEnv(
+      process.env.DISCORD_REDIRECT_URI ||
+      process.env.VITE_DISCORD_REDIRECT_URI ||
+      `${req.url?.split('/api')[0] || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:8080')}/api/auth/discord/callback`
+    );
     // Para Supabase, tenta sem VITE_ primeiro (serverless functions não têm acesso a VITE_*)
     const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
     const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -176,14 +190,17 @@ export default async function handler(
         redirectUri: DISCORD_REDIRECT_URI,
         redirectUriLength: DISCORD_REDIRECT_URI?.length,
         redirectUriHasSpaces: DISCORD_REDIRECT_URI?.includes(' '),
+        redirectUriHasEscapedNewlines: /\\r\\n|\\n|\\r/.test(DISCORD_REDIRECT_URI || ''),
         hasCode: !!req.query.code,
         codeLength: req.query.code?.toString().length,
         clientId: DISCORD_CLIENT_ID ? `${DISCORD_CLIENT_ID.substring(0, 4)}...${DISCORD_CLIENT_ID.substring(DISCORD_CLIENT_ID.length - 4)}` : 'MISSING',
         clientIdLength: DISCORD_CLIENT_ID?.length,
         clientIdHasSpaces: DISCORD_CLIENT_ID?.includes(' '),
+        clientIdHasEscapedNewlines: /\\r\\n|\\n|\\r/.test(DISCORD_CLIENT_ID || ''),
         clientSecret: DISCORD_CLIENT_SECRET ? `${DISCORD_CLIENT_SECRET.substring(0, 4)}...${DISCORD_CLIENT_SECRET.substring(DISCORD_CLIENT_SECRET.length - 4)}` : 'MISSING',
         clientSecretLength: DISCORD_CLIENT_SECRET?.length,
         clientSecretHasSpaces: DISCORD_CLIENT_SECRET?.includes(' '),
+        clientSecretHasEscapedNewlines: /\\r\\n|\\n|\\r/.test(DISCORD_CLIENT_SECRET || ''),
       });
       
       // Troca o código por um token de acesso
@@ -193,11 +210,11 @@ export default async function handler(
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          client_id: DISCORD_CLIENT_ID.trim(),
-          client_secret: DISCORD_CLIENT_SECRET.trim(),
+          client_id: (DISCORD_CLIENT_ID || '').trim(),
+          client_secret: (DISCORD_CLIENT_SECRET || '').trim(),
           grant_type: 'authorization_code',
           code: (req.query.code as string).trim(),
-          redirect_uri: DISCORD_REDIRECT_URI.trim(),
+          redirect_uri: (DISCORD_REDIRECT_URI || '').trim(),
         }),
       });
 
