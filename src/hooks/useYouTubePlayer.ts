@@ -116,18 +116,33 @@ export function useYouTubePlayer(options: UseYouTubePlayerOptions): UseYouTubePl
   const [apiReady, setApiReady] = useState(false);
 
   useEffect(() => {
+    // Check if API is already loaded
     if (window.YT && window.YT.Player) {
       setApiReady(true);
       return;
     }
 
+    // Check if script is loading
+    const checkInterval = setInterval(() => {
+      if (window.YT && window.YT.Player) {
+        setApiReady(true);
+        clearInterval(checkInterval);
+      }
+    }, 100);
+
     // Set up callback for when API loads
     const originalCallback = window.onYouTubeIframeAPIReady;
     window.onYouTubeIframeAPIReady = () => {
       setApiReady(true);
+      clearInterval(checkInterval);
       if (originalCallback) {
         originalCallback();
       }
+    };
+
+    // Cleanup
+    return () => {
+      clearInterval(checkInterval);
     };
   }, []);
 
@@ -196,6 +211,18 @@ export function useYouTubePlayer(options: UseYouTubePlayerOptions): UseYouTubePl
               // Ignore
             }
 
+            // Auto-play if requested
+            if (autoplay) {
+              try {
+                // Small delay to ensure player is fully ready
+                setTimeout(() => {
+                  event.target.playVideo();
+                }, 100);
+              } catch (e) {
+                console.error('Error auto-playing YouTube video:', e);
+              }
+            }
+
             onReady?.();
           },
           onStateChange: (event: { data: number; target: any }) => {
@@ -215,6 +242,15 @@ export function useYouTubePlayer(options: UseYouTubePlayerOptions): UseYouTubePl
                   setDuration(dur);
                   onDurationChange?.(dur);
                 }
+              } catch (e) {
+                // Ignore
+              }
+            }
+
+            // Handle loop - restart video when it ends
+            if (state === YT_STATE.ENDED && loop) {
+              try {
+                event.target.playVideo();
               } catch (e) {
                 // Ignore
               }

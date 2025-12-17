@@ -44,37 +44,60 @@ const MusicCard = ({ profile }: MusicCardProps) => {
     }
 
     const audio = new Audio(profile.music_url);
+    audio.loop = true;
+    audio.volume = 0.5;
+    audio.preload = 'auto';
     audioRef.current = audio;
+
+    let hasTriedAutoplay = false;
 
     const updateTime = () => setCurrentTime(audio.currentTime);
     const updateDuration = () => {
       setDuration(audio.duration);
       // Auto-play when metadata is loaded
-      audio.play().catch((error) => {
-        console.error('Error auto-playing audio:', error);
-      });
+      if (!hasTriedAutoplay) {
+        hasTriedAutoplay = true;
+        audio.play().catch(() => {
+          // Tentaremos novamente no canplay
+        });
+      }
     };
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
+      // Restart if loop is enabled
+      if (audio.loop) {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+      }
     };
     const handleCanPlay = () => {
       // Tenta tocar quando o áudio estiver pronto
-      audio.play().catch((error) => {
-        console.error('Error auto-playing audio:', error);
-      });
+      if (!isPlaying && !hasTriedAutoplay) {
+        hasTriedAutoplay = true;
+        audio.play().catch(() => {});
+      }
+    };
+    const handleLoadedData = () => {
+      // Última tentativa de autoplay
+      if (!isPlaying && !hasTriedAutoplay) {
+        hasTriedAutoplay = true;
+        audio.play().catch(() => {});
+      }
     };
 
     audio.addEventListener("timeupdate", updateTime);
     audio.addEventListener("loadedmetadata", updateDuration);
     audio.addEventListener("ended", handleEnded);
     audio.addEventListener("canplay", handleCanPlay);
+    audio.addEventListener("loadeddata", handleLoadedData);
 
     return () => {
       audio.removeEventListener("timeupdate", updateTime);
       audio.removeEventListener("loadedmetadata", updateDuration);
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("canplay", handleCanPlay);
+      audio.removeEventListener("loadeddata", handleLoadedData);
       audio.pause();
       audio.src = "";
     };

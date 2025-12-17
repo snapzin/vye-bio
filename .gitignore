@@ -37,3 +37,6 @@ scripts/.__vercel_env_tmp
 
 .vercel
 .env*.local
+
+.vercel
+.env*.local

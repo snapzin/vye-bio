@@ -106,6 +106,7 @@ export function DashboardPreview() {
     }
 
     let cancelled = false;
+    let hasTriedAutoplay = false;
     const audioElement = new Audio(displayProfile.music_url);
     audioElement.loop = true;
     audioElement.volume = 0.3;
@@ -124,25 +125,46 @@ export function DashboardPreview() {
       if (!cancelled) {
         setDuration(audioElement.duration);
         // Auto-play when metadata is loaded
-        audioElement.play().catch((error) => {
-          console.error('Error auto-playing audio:', error);
-        });
+        if (!hasTriedAutoplay) {
+          hasTriedAutoplay = true;
+          audioElement.play().catch(() => {
+            // Tentaremos novamente no canplay
+          });
+        }
       }
     };
     const handleCanPlay = () => {
       // Tenta tocar quando o áudio estiver pronto
+      if (!cancelled && !isPlaying && !hasTriedAutoplay) {
+        hasTriedAutoplay = true;
+        audioElement.play().catch(() => {});
+      }
+    };
+    const handleLoadedData = () => {
+      // Última tentativa de autoplay
+      if (!cancelled && !isPlaying && !hasTriedAutoplay) {
+        hasTriedAutoplay = true;
+        audioElement.play().catch(() => {});
+      }
+    };
+    const handleEnded = () => {
       if (!cancelled) {
-        audioElement.play().catch((error) => {
-          console.error('Error auto-playing audio:', error);
-        });
+        setIsPlaying(false);
+        // Restart if loop is enabled
+        if (audioElement.loop) {
+          audioElement.currentTime = 0;
+          audioElement.play().catch(() => {});
+        }
       }
     };
     
     audioElement.addEventListener('play', handlePlay);
     audioElement.addEventListener('pause', handlePause);
+    audioElement.addEventListener('ended', handleEnded);
     audioElement.addEventListener('timeupdate', handleTimeUpdate);
     audioElement.addEventListener('loadedmetadata', handleLoadedMetadata);
     audioElement.addEventListener('canplay', handleCanPlay);
+    audioElement.addEventListener('loadeddata', handleLoadedData);
     
     audioRef.current = audioElement;
 
@@ -151,9 +173,11 @@ export function DashboardPreview() {
       audioElement.pause();
       audioElement.removeEventListener('play', handlePlay);
       audioElement.removeEventListener('pause', handlePause);
+      audioElement.removeEventListener('ended', handleEnded);
       audioElement.removeEventListener('timeupdate', handleTimeUpdate);
       audioElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audioElement.removeEventListener('canplay', handleCanPlay);
+      audioElement.removeEventListener('loadeddata', handleLoadedData);
     };
   }, [displayProfile?.music_url, isYouTube]);
 

@@ -248,25 +248,45 @@ const Profile = () => {
       audioElement.volume = 0.5;
       audioElement.preload = 'auto';
       
+      let hasTriedAutoplay = false;
+
       const handlePlay = () => setIsPlaying(true);
       const handlePause = () => setIsPlaying(false);
-      const handleEnded = () => setIsPlaying(false);
+      const handleEnded = () => {
+        setIsPlaying(false);
+        // Restart if loop is enabled
+        if (audioElement.loop) {
+          audioElement.currentTime = 0;
+          audioElement.play().catch(() => {});
+        }
+      };
       const handleTimeUpdate = () => setCurrentTime(audioElement.currentTime);
       const handleLoadedMetadata = () => {
         setDuration(audioElement.duration);
         // Auto-play when metadata is loaded
-        audioElement.play().catch((error) => {
-          console.error('Error auto-playing audio:', error);
-          // Autoplay pode falhar devido a políticas do navegador - isso é normal
-        });
+        if (!hasTriedAutoplay) {
+          hasTriedAutoplay = true;
+          audioElement.play().catch((error) => {
+            // Autoplay pode falhar devido a políticas do navegador - isso é normal
+            // Tentaremos novamente no canplay
+          });
+        }
       };
       const handleDurationChange = () => setDuration(audioElement.duration);
       const handleCanPlay = () => {
-        // Tenta tocar quando o áudio estiver pronto
-        if (!isPlaying) {
-          audioElement.play().catch((error) => {
-            console.error('Error auto-playing audio:', error);
+        // Tenta tocar quando o áudio estiver pronto (se ainda não estiver tocando)
+        if (!isPlaying && !hasTriedAutoplay) {
+          hasTriedAutoplay = true;
+          audioElement.play().catch(() => {
+            // Silenciosamente falha se autoplay não for permitido
           });
+        }
+      };
+      const handleLoadedData = () => {
+        // Última tentativa de autoplay
+        if (!isPlaying && !hasTriedAutoplay) {
+          hasTriedAutoplay = true;
+          audioElement.play().catch(() => {});
         }
       };
       
@@ -277,6 +297,7 @@ const Profile = () => {
       audioElement.addEventListener('loadedmetadata', handleLoadedMetadata);
       audioElement.addEventListener('durationchange', handleDurationChange);
       audioElement.addEventListener('canplay', handleCanPlay);
+      audioElement.addEventListener('loadeddata', handleLoadedData);
       
       setAudio(audioElement);
 
@@ -289,6 +310,7 @@ const Profile = () => {
         audioElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
         audioElement.removeEventListener('durationchange', handleDurationChange);
         audioElement.removeEventListener('canplay', handleCanPlay);
+        audioElement.removeEventListener('loadeddata', handleLoadedData);
       };
     } else {
       setAudio(null);
