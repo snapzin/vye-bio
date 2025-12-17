@@ -16,6 +16,8 @@ import ValorantStatusCard from "@/components/ValorantStatusCard";
 import MusicCard from "@/components/MusicCard";
 import { getSocialIcon } from "@/lib/socialIcons";
 import { BadgeIcon } from "@/lib/badgeIcons";
+import { isYouTubeUrl, extractYouTubeVideoId } from "@/lib/youtube";
+import { useYouTubePlayer } from "@/hooks/useYouTubePlayer";
 
 const rarityColors: Record<string, string> = {
   common: "bg-secondary",
@@ -178,6 +180,34 @@ const Profile = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
+  // Check if music_url is YouTube
+  const isYouTube = profile?.music_url ? isYouTubeUrl(profile.music_url) : false;
+  const youtubeVideoId = profile?.music_url ? extractYouTubeVideoId(profile.music_url)?.videoId : null;
+
+  // YouTube player hook
+  const youtubePlayer = useYouTubePlayer({
+    videoId: youtubeVideoId || '',
+    autoplay: false,
+    loop: true,
+    volume: 50,
+    onReady: () => {
+      // Player ready
+    },
+    onStateChange: (state) => {
+      // 1 = playing, 2 = paused, 0 = ended
+      setIsPlaying(state === 1);
+    },
+    onTimeUpdate: (time) => {
+      setCurrentTime(time);
+    },
+    onDurationChange: (dur) => {
+      setDuration(dur);
+    },
+    onError: (error) => {
+      console.error('YouTube player error:', error);
+    },
+  });
+
   useEffect(() => {
     if (profile?.user_id) {
       setUserId(profile.user_id);
@@ -210,9 +240,9 @@ const Profile = () => {
     }
   }, [profile, username]);
 
-  // Initialize audio player
+  // Initialize audio player (only for non-YouTube URLs)
   useEffect(() => {
-    if (profile?.music_url) {
+    if (profile?.music_url && !isYouTube) {
       const audioElement = new Audio(profile.music_url);
       audioElement.loop = true;
       audioElement.volume = 0.5;
@@ -245,15 +275,19 @@ const Profile = () => {
       };
     } else {
       setAudio(null);
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setDuration(0);
+      if (!isYouTube) {
+        setIsPlaying(false);
+        setCurrentTime(0);
+        setDuration(0);
+      }
     }
-  }, [profile?.music_url]);
+  }, [profile?.music_url, isYouTube]);
 
   // Handle play/pause
   const togglePlay = () => {
-    if (audio) {
+    if (isYouTube && youtubeVideoId) {
+      youtubePlayer.togglePlay();
+    } else if (audio) {
       if (isPlaying) {
         audio.pause();
       } else {
@@ -274,7 +308,12 @@ const Profile = () => {
 
   // Handle progress bar click
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (audio && duration) {
+    if (isYouTube && youtubeVideoId && youtubePlayer.duration) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percentage = x / rect.width;
+      youtubePlayer.seekTo(percentage * youtubePlayer.duration);
+    } else if (audio && duration) {
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const percentage = x / rect.width;
@@ -601,9 +640,9 @@ const Profile = () => {
       {profile.music_url && profile.music_player_style === 'floating' && (
         <FloatingMusicPlayer
           profile={profile}
-          isPlaying={isPlaying}
-          currentTime={currentTime}
-          duration={duration}
+          isPlaying={isYouTube ? youtubePlayer.isPlaying : isPlaying}
+          currentTime={isYouTube ? youtubePlayer.currentTime : currentTime}
+          duration={isYouTube ? youtubePlayer.duration : duration}
           onTogglePlay={togglePlay}
           onProgressClick={handleProgressClick}
           formatTime={formatTime}

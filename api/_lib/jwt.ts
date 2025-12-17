@@ -38,24 +38,24 @@ export function createToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
     const secret = getJWTSecret();
     console.log('JWT_SECRET retrieved successfully, length:', secret.length);
     
-    const header = {
-      alg: 'HS256',
-      typ: 'JWT',
-    };
+  const header = {
+    alg: 'HS256',
+    typ: 'JWT',
+  };
 
-    const now = Math.floor(Date.now() / 1000);
-    const jwtPayload: JWTPayload = {
-      ...payload,
-      iat: now,
-      exp: now + (7 * 24 * 60 * 60), // 7 dias
-    };
+  const now = Math.floor(Date.now() / 1000);
+  const jwtPayload: JWTPayload = {
+    ...payload,
+    iat: now,
+    exp: now + (7 * 24 * 60 * 60), // 7 dias
+  };
 
-    const base64Header = Buffer.from(JSON.stringify(header)).toString('base64url');
-    const base64Payload = Buffer.from(JSON.stringify(jwtPayload)).toString('base64url');
+  const base64Header = Buffer.from(JSON.stringify(header)).toString('base64url');
+  const base64Payload = Buffer.from(JSON.stringify(jwtPayload)).toString('base64url');
 
-    const signature = createSignature(`${base64Header}.${base64Payload}`);
+  const signature = createSignature(`${base64Header}.${base64Payload}`);
 
-    return `${base64Header}.${base64Payload}.${signature}`;
+  return `${base64Header}.${base64Payload}.${signature}`;
   } catch (error: any) {
     console.error('Error in createToken:', error);
     console.error('Error details:', {

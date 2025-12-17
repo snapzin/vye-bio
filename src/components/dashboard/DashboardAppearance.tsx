@@ -521,7 +521,7 @@ export function DashboardAppearance() {
                   className="bg-secondary/50"
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Dica: para tocar no perfil, precisa ser um link direto para arquivo de áudio (ou com CORS liberado).
+                  Dica: aceita links diretos de áudio (.mp3, .wav, etc.) ou URLs do YouTube (youtube.com/watch?v=... ou youtu.be/...).
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2">

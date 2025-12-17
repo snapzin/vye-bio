@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import { Play, Pause, Music } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import type { Profile } from "@/hooks/useProfile";
+import { isYouTubeUrl, extractYouTubeVideoId } from "@/lib/youtube";
+import { useYouTubePlayer } from "@/hooks/useYouTubePlayer";
 
 interface MusicCardProps {
   profile: Profile;
@@ -13,8 +15,33 @@ const MusicCard = ({ profile }: MusicCardProps) => {
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Check if music_url is YouTube
+  const isYouTube = profile?.music_url ? isYouTubeUrl(profile.music_url) : false;
+  const youtubeVideoId = profile?.music_url ? extractYouTubeVideoId(profile.music_url)?.videoId : null;
+
+  // YouTube player hook
+  const youtubePlayer = useYouTubePlayer({
+    videoId: youtubeVideoId || '',
+    autoplay: false,
+    loop: true,
+    volume: 50,
+    onStateChange: (state) => {
+      setIsPlaying(state === 1);
+    },
+    onTimeUpdate: (time) => {
+      setCurrentTime(time);
+    },
+    onDurationChange: (dur) => {
+      setDuration(dur);
+    },
+  });
+
+  // Initialize audio player (only for non-YouTube URLs)
   useEffect(() => {
-    if (!profile.music_url) return;
+    if (!profile.music_url || isYouTube) {
+      audioRef.current = null;
+      return;
+    }
 
     const audio = new Audio(profile.music_url);
     audioRef.current = audio;
@@ -37,29 +64,46 @@ const MusicCard = ({ profile }: MusicCardProps) => {
       audio.pause();
       audio.src = "";
     };
-  }, [profile.music_url]);
+  }, [profile.music_url, isYouTube]);
 
   useEffect(() => {
+    if (isYouTube) {
+      // YouTube player is handled by the hook
+      return;
+    }
     if (!audioRef.current) return;
     if (isPlaying) {
       audioRef.current.play();
     } else {
       audioRef.current.pause();
     }
-  }, [isPlaying]);
+  }, [isPlaying, isYouTube]);
 
   const togglePlay = () => {
-    setIsPlaying(!isPlaying);
+    if (isYouTube && youtubeVideoId) {
+      youtubePlayer.togglePlay();
+    } else {
+      setIsPlaying(!isPlaying);
+    }
   };
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!audioRef.current || duration === 0) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const percent = x / rect.width;
-    const newTime = percent * duration;
-    audioRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
+    if (isYouTube && youtubeVideoId && youtubePlayer.duration) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percent = x / rect.width;
+      const newTime = percent * youtubePlayer.duration;
+      youtubePlayer.seekTo(newTime);
+    } else if (!audioRef.current || duration === 0) {
+      return;
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percent = x / rect.width;
+      const newTime = percent * duration;
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
   };
 
   const formatTime = (seconds: number): string => {
@@ -110,9 +154,10 @@ const MusicCard = ({ profile }: MusicCardProps) => {
             <div className="flex items-center gap-3 mb-2">
               <button
                 onClick={togglePlay}
-                className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground hover:opacity-90 transition-opacity flex-shrink-0"
+                disabled={isYouTube && !youtubePlayer.isReady}
+                className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground hover:opacity-90 transition-opacity flex-shrink-0 disabled:opacity-50"
               >
-                {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                {(isYouTube ? youtubePlayer.isPlaying : isPlaying) ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
               </button>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-foreground truncate">
@@ -125,7 +170,7 @@ const MusicCard = ({ profile }: MusicCardProps) => {
             </div>
 
             {/* Progress Bar */}
-            {duration > 0 && (
+            {((isYouTube ? youtubePlayer.duration : duration) > 0) && (
               <div className="space-y-1">
                 <div 
                   className="w-full h-1 bg-secondary rounded-full cursor-pointer group"
@@ -133,12 +178,14 @@ const MusicCard = ({ profile }: MusicCardProps) => {
                 >
                   <div 
                     className="h-full bg-primary rounded-full transition-all duration-150 group-hover:bg-primary/80"
-                    style={{ width: `${(currentTime / duration) * 100}%` }}
+                    style={{ 
+                      width: `${((isYouTube ? youtubePlayer.currentTime : currentTime) / (isYouTube ? youtubePlayer.duration : duration)) * 100}%` 
+                    }}
                   />
                 </div>
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{formatTime(currentTime)}</span>
-                  <span>{formatTime(duration)}</span>
+                  <span>{formatTime(isYouTube ? youtubePlayer.currentTime : currentTime)}</span>
+                  <span>{formatTime(isYouTube ? youtubePlayer.duration : duration)}</span>
                 </div>
               </div>
             )}

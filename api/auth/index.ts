@@ -376,9 +376,9 @@ async function executeHandler(
       let jwtToken: string;
       try {
         jwtToken = createToken({
-          userId: profile.user_id,
-          email: profile.email,
-        });
+        userId: profile.user_id,
+        email: profile.email,
+      });
       } catch (tokenError: any) {
         console.error('Error creating JWT token:', tokenError);
         try {
@@ -562,9 +562,9 @@ async function executeHandler(
       let jwtToken: string;
       try {
         jwtToken = createToken({
-          userId: profile.user_id,
-          email: profile.email,
-        });
+        userId: profile.user_id,
+        email: profile.email,
+      });
       } catch (tokenError: any) {
         console.error('Error creating JWT token:', tokenError);
         try {

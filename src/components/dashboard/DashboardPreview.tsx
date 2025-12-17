@@ -7,6 +7,8 @@ import DiscordStatusCard from "@/components/DiscordStatusCard";
 import ValorantStatusCard from "@/components/ValorantStatusCard";
 import { getSocialIcon } from "@/lib/socialIcons";
 import { BadgeIcon } from "@/lib/badgeIcons";
+import { isYouTubeUrl, extractYouTubeVideoId } from "@/lib/youtube";
+import { useYouTubePlayer } from "@/hooks/useYouTubePlayer";
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
@@ -22,6 +24,27 @@ export function DashboardPreview() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Check if music_url is YouTube (from displayProfile)
+  const isYouTube = displayProfile?.music_url ? isYouTubeUrl(displayProfile.music_url) : false;
+  const youtubeVideoId = displayProfile?.music_url ? extractYouTubeVideoId(displayProfile.music_url)?.videoId : null;
+
+  // YouTube player hook
+  const youtubePlayer = useYouTubePlayer({
+    videoId: youtubeVideoId || '',
+    autoplay: false,
+    loop: true,
+    volume: 30,
+    onStateChange: (state) => {
+      setIsPlaying(state === 1);
+    },
+    onTimeUpdate: (time) => {
+      setCurrentTime(time);
+    },
+    onDurationChange: (dur) => {
+      setDuration(dur);
+    },
+  });
   
   // Keep previous profile data to avoid flickering during updates
   const [cachedProfile, setCachedProfile] = useState<typeof profile>(null);
@@ -66,17 +89,19 @@ export function DashboardPreview() {
     ? { ...effectiveProfile, ...(previewData || {}) }
     : null;
 
-  // Initialize audio player when music_url changes
+  // Initialize audio player when music_url changes (only for non-YouTube URLs)
   // IMPORTANT: All hooks must be called before any conditional returns
   useEffect(() => {
-    if (!displayProfile?.music_url) {
+    if (!displayProfile?.music_url || isYouTube) {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setDuration(0);
+      if (!isYouTube) {
+        setIsPlaying(false);
+        setCurrentTime(0);
+        setDuration(0);
+      }
       return;
     }
 
@@ -114,10 +139,12 @@ export function DashboardPreview() {
       audioElement.removeEventListener('timeupdate', handleTimeUpdate);
       audioElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
-  }, [displayProfile?.music_url]);
+  }, [displayProfile?.music_url, isYouTube]);
 
   const togglePlay = () => {
-    if (audioRef.current) {
+    if (isYouTube && youtubeVideoId) {
+      youtubePlayer.togglePlay();
+    } else if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
@@ -155,14 +182,14 @@ export function DashboardPreview() {
         className="flex-1 flex flex-col items-center relative"
       >
         {/* Background Preview */}
-        <div
+        <div 
           className="w-full h-24 rounded-2xl mb-[-40px] relative overflow-hidden"
           style={{
             backgroundColor: displayProfile.background_color || '#0a0a0b',
             backgroundImage:
               displayProfile.background_type === 'image' && displayProfile.background_url
-                ? `url(${displayProfile.background_url})`
-                : undefined,
+              ? `url(${displayProfile.background_url})` 
+              : undefined,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
@@ -197,20 +224,20 @@ export function DashboardPreview() {
 
           <div className="relative z-10">
             {/* Banner Preview (inside card, abaixo do topo) */}
-            {displayProfile.banner_url && (
-              <div
-                className="w-full h-16 rounded-xl mb-4 relative overflow-hidden"
-                style={{
-                  backgroundImage: `url(${displayProfile.banner_url})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-t from-card/50 to-transparent" />
-              </div>
-            )}
+        {displayProfile.banner_url && (
+          <div 
+            className="w-full h-16 rounded-xl mb-4 relative overflow-hidden"
+            style={{
+              backgroundImage: `url(${displayProfile.banner_url})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-card/50 to-transparent" />
+          </div>
+        )}
 
-            {/* Avatar */}
+        {/* Avatar */}
             <div className="relative z-10 -mt-10 flex justify-center">
           <img
             src={displayProfile.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${displayProfile.display_name || displayProfile.username}`}
@@ -224,62 +251,62 @@ export function DashboardPreview() {
             }`}
           />
           <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-2 border-card" />
-            </div>
+        </div>
 
-            {/* Name */}
-            <h3 className="mt-4 text-lg font-bold text-foreground">
+        {/* Name */}
+        <h3 className="mt-4 text-lg font-bold text-foreground">
           {displayProfile.display_name || displayProfile.username}
-            </h3>
+        </h3>
 
-            {/* Location */}
-            {displayProfile.location && (
+        {/* Location */}
+        {displayProfile.location && (
               <div
                 className={`flex items-center gap-1.5 mt-2 text-sm text-muted-foreground ${
                   (displayProfile.card_direction || 'center') === 'left' ? 'justify-start' : 'justify-center'
                 }`}
               >
-                <MapPin className="w-3.5 h-3.5" />
-                <span>{displayProfile.location}</span>
-              </div>
-            )}
+            <MapPin className="w-3.5 h-3.5" />
+            <span>{displayProfile.location}</span>
+          </div>
+        )}
 
-            {/* Badges */}
-            {displayedBadges.length > 0 && (
-              <div className="mt-3">
+        {/* Badges */}
+        {displayedBadges.length > 0 && (
+          <div className="mt-3">
                 <div
                   className={`w-fit max-w-full rounded-2xl bg-secondary/40 border border-border/50 backdrop-blur-sm px-3 py-1.5 ${
                     (displayProfile.card_direction || 'center') === 'left' ? '' : 'mx-auto'
                   }`}
                 >
-                  <div className="flex items-center justify-center flex-wrap gap-2">
-                    {displayedBadges.map((badge) => (
-                      <span
-                        key={badge.id}
-                        className="inline-flex items-center justify-center leading-none w-5 h-5"
-                        title={badge.badge?.name}
-                      >
-                        <BadgeIcon badgeName={badge.badge?.name} icon={badge.badge?.icon} className="w-5 h-5" size={20} />
-                      </span>
-                    ))}
-                  </div>
-                </div>
+              <div className="flex items-center justify-center flex-wrap gap-2">
+                {displayedBadges.map((badge) => (
+                  <span
+                    key={badge.id}
+                    className="inline-flex items-center justify-center leading-none w-5 h-5"
+                    title={badge.badge?.name}
+                  >
+                    <BadgeIcon badgeName={badge.badge?.name} icon={badge.badge?.icon} className="w-5 h-5" size={20} />
+                  </span>
+                ))}
               </div>
-            )}
+            </div>
+          </div>
+        )}
 
-            {/* Bio */}
-            {displayProfile.bio && (
+        {/* Bio */}
+        {displayProfile.bio && (
               <p
                 className={`text-sm text-muted-foreground mt-3 line-clamp-2 ${
                   (displayProfile.card_direction || 'center') === 'left' ? 'text-left' : 'text-center px-4'
                 }`}
               >
-                {displayProfile.bio}
-              </p>
-            )}
+            {displayProfile.bio}
+          </p>
+        )}
 
-            {/* Widgets */}
-            {activeWidgets.filter(w => w.is_visible).length > 0 && (
-              <div className="w-full mt-3 space-y-2">
+        {/* Widgets */}
+        {activeWidgets.filter(w => w.is_visible).length > 0 && (
+          <div className="w-full mt-3 space-y-2">
             {activeWidgets
               .filter(w => w.is_visible)
               .sort((a, b) => a.sort_order - b.sort_order)
@@ -311,12 +338,12 @@ export function DashboardPreview() {
                 }
                 return null;
               })}
-              </div>
-            )}
+          </div>
+        )}
 
-            {/* Music Player (card) - same order as Profile.tsx: after widgets, before links */}
-            {displayProfile.music_url && (displayProfile.music_player_style || 'card') !== 'floating' && (
-              <div className="w-full mt-3">
+        {/* Music Player (card) - same order as Profile.tsx: after widgets, before links */}
+        {displayProfile.music_url && (displayProfile.music_player_style || 'card') !== 'floating' && (
+          <div className="w-full mt-3">
             <div className="rounded-xl bg-secondary/50 border border-border/50 overflow-hidden">
               <div className="flex gap-3 p-3">
                 {/* Image - lado esquerdo */}
@@ -341,7 +368,7 @@ export function DashboardPreview() {
                       onClick={togglePlay}
                       className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground hover:opacity-90 transition-opacity flex-shrink-0"
                     >
-                      {isPlaying ? (
+                      {(isYouTube ? youtubePlayer.isPlaying : isPlaying) ? (
                         <Pause className="w-3 h-3" />
                       ) : (
                         <Play className="w-3 h-3 ml-0.5" />
@@ -358,27 +385,29 @@ export function DashboardPreview() {
                   </div>
 
                   {/* Progress Bar */}
-                  {duration > 0 && (
+                  {((isYouTube ? youtubePlayer.duration : duration) > 0) && (
                     <div className="space-y-0.5">
                       <div className="w-full h-1 bg-secondary rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-primary rounded-full transition-all"
-                          style={{ width: `${(currentTime / duration) * 100}%` }}
+                          style={{ 
+                            width: `${((isYouTube ? youtubePlayer.currentTime : currentTime) / (isYouTube ? youtubePlayer.duration : duration)) * 100}%` 
+                          }}
                         />
                       </div>
                       <div className="flex justify-between text-[10px] text-muted-foreground">
-                        <span>{formatTime(currentTime)}</span>
-                        <span>{formatTime(duration)}</span>
+                        <span>{formatTime(isYouTube ? youtubePlayer.currentTime : currentTime)}</span>
+                        <span>{formatTime(isYouTube ? youtubePlayer.duration : duration)}</span>
                       </div>
                     </div>
                   )}
                 </div>
               </div>
             </div>
-              </div>
-            )}
+          </div>
+        )}
 
-            {/* Mini Links */}
+        {/* Mini Links */}
             <div
               className={`w-full mt-6 ${
                 (displayProfile?.link_style || 'cards') === 'buttons'
@@ -442,10 +471,10 @@ export function DashboardPreview() {
               Nenhum link adicionado ainda
             </div>
           )}
-            </div>
+        </div>
 
-            {/* Stats */}
-            <div className="mt-auto pt-6 w-full">
+        {/* Stats */}
+        <div className="mt-auto pt-6 w-full">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Visualizações</span>
             <span className="font-semibold text-foreground">{displayProfile.views_count || 0}</span>
@@ -459,7 +488,7 @@ export function DashboardPreview() {
           <button
             onClick={togglePlay}
             className="absolute bottom-4 right-4 w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center overflow-hidden"
-            title={isPlaying ? "Pausar" : "Reproduzir"}
+            title={(isYouTube ? youtubePlayer.isPlaying : isPlaying) ? "Pausar" : "Reproduzir"}
           >
             {displayProfile.music_image_url ? (
               <img
