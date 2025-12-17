@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Camera, Loader2, Save, Upload, Image, User, Square, Circle, Palette, X, Layout, AlignLeft, AlignCenter, FileText } from "lucide-react";
+import { Camera, Loader2, Save, Upload, Image, User, Square, Circle, Palette, X, Layout, AlignLeft, AlignCenter, FileText, Trash2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { supabase } from "@/integrations/supabase/client";
@@ -189,6 +189,39 @@ export function DashboardAppearance() {
     setUploading(null);
   };
 
+  const handleRemoveBackground = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setUploading('background');
+    try {
+      await updateProfile({
+        background_url: null,
+        background_type: 'solid',
+      });
+      toast.success("Imagem de fundo removida!");
+      refreshPreview();
+    } catch {
+      toast.error("Falha ao remover imagem de fundo");
+    } finally {
+      setUploading(null);
+    }
+  };
+
+  const handleRemoveBanner = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setUploading('banner');
+    try {
+      await updateProfile({ banner_url: null });
+      toast.success("Banner removido!");
+      refreshPreview();
+    } catch {
+      toast.error("Falha ao remover banner");
+    } finally {
+      setUploading(null);
+    }
+  };
+
   if (!profile) return null;
 
   return (
@@ -333,7 +366,7 @@ export function DashboardAppearance() {
             <p className="text-sm font-medium text-foreground mb-3">Imagem de Fundo</p>
             <div 
               onClick={() => backgroundInputRef.current?.click()}
-              className="h-32 rounded-xl border-2 border-dashed border-border hover:border-accent/50 cursor-pointer flex flex-col items-center justify-center gap-2 transition-colors group"
+              className="h-32 rounded-xl border-2 border-dashed border-border hover:border-accent/50 cursor-pointer flex flex-col items-center justify-center gap-2 transition-colors group relative overflow-hidden"
               style={{
                 backgroundColor: profile.background_type === 'image' && profile.background_url ? undefined : profile.background_color,
                 backgroundImage: profile.background_type === 'image' && profile.background_url 
@@ -343,6 +376,17 @@ export function DashboardAppearance() {
                 backgroundPosition: 'center',
               }}
             >
+              {profile.background_url && (
+                <button
+                  type="button"
+                  onClick={handleRemoveBackground}
+                  className="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-8 h-8 rounded-full bg-background/80 border border-border/60 text-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                  aria-label="Remover imagem de fundo"
+                  title="Remover"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
               {!profile.background_url && (
                 <>
                   <Upload className="w-6 h-6 text-muted-foreground group-hover:text-accent transition-colors" />
@@ -382,6 +426,17 @@ export function DashboardAppearance() {
                 backgroundPosition: 'center',
               }}
             >
+              {profile.banner_url && (
+                <button
+                  type="button"
+                  onClick={handleRemoveBanner}
+                  className="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-8 h-8 rounded-full bg-background/80 border border-border/60 text-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                  aria-label="Remover banner"
+                  title="Remover"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
               {!profile.banner_url && (
                 <>
                   <Upload className="w-6 h-6 text-muted-foreground group-hover:text-accent transition-colors" />

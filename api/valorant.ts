@@ -92,8 +92,13 @@ export default async function handler(
   
   // Pega a API key do ambiente (se configurada)
   // No Vercel, variáveis de ambiente VITE_* podem não estar disponíveis no runtime
-  // Configure HENRIKDEV_KEY no Vercel (sem prefixo VITE_) OU use VITE_HENRIKDEV_KEY
-  const apiKey = process.env.HENRIKDEV_KEY || process.env.VITE_HENRIKDEV_KEY;
+  // Configure HENRIKDEV_KEY no Vercel (sem prefixo VITE_). Aceitamos aliases por compatibilidade.
+  const apiKey =
+    process.env.HENRIKDEV_KEY ||
+    process.env.HENRIKDEV_API_KEY ||
+    process.env.HDEV_API_KEY ||
+    process.env.VALORANT_API_KEY ||
+    process.env.VITE_HENRIKDEV_KEY;
   
   // Headers para a requisição
   const headers: Record<string, string> = {
@@ -104,22 +109,14 @@ export default async function handler(
   // A API do HenrikDev usa Authorization header com a API key
   // Pode ser necessário usar "Bearer {key}" ou apenas a key diretamente
   if (apiKey) {
-    // Tenta ambos os formatos: direto e com Bearer
-    // A maioria das APIs aceita ambos, mas vamos tentar direto primeiro
-    headers['Authorization'] = apiKey.startsWith('Bearer ') ? apiKey : apiKey;
-    console.log('API Key encontrada e será enviada');
+    // HenrikDev espera a key no header Authorization (sem "Bearer")
+    headers['Authorization'] = apiKey.replace(/^Bearer\s+/i, '');
   } else {
     console.warn('API Key não encontrada. Verifique as variáveis de ambiente no Vercel.');
-    console.warn('Variáveis disponíveis:', Object.keys(process.env).filter(k => k.includes('HENRIK') || k.includes('VALORANT')));
   }
   
-  console.log('Proxy request:', { 
-    pathString, 
-    valorantApiUrl, 
-    method: req.method, 
-    hasApiKey: !!apiKey,
-    url: req.url 
-  });
+  // Log leve (não expõe key)
+  console.log('Proxy request:', { pathString, method: req.method, hasApiKey: !!apiKey });
   
   try {
     const response = await fetch(valorantApiUrl, {

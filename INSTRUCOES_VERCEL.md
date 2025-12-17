@@ -11,23 +11,23 @@ Acesse o painel da Vercel e configure as seguintes variáveis de ambiente:
 ### 1. Discord OAuth
 
 ```
-DISCORD_CLIENT_ID=1442598539770466540
-DISCORD_CLIENT_SECRET=tHmEIfFZvPiExkCzGyWIXL91kFD6UVwq
-DISCORD_REDIRECT_URI=https://vye.vercel.app/api/auth/discord/callback
+DISCORD_CLIENT_ID=SEU_DISCORD_CLIENT_ID
+DISCORD_CLIENT_SECRET=SEU_DISCORD_CLIENT_SECRET
+DISCORD_REDIRECT_URI=https://SEU_DOMINIO.vercel.app/api/auth/discord/callback
 ```
 
 ### 2. Supabase
 
 ```
-SUPABASE_URL=https://eovsglkvefergfyardna.supabase.co
-SUPABASE_ANON_KEY=sb_publishable_PBdxvJOsUAdFdLWasrz_pA_CGL9kyQM
-SUPABASE_PUBLISHABLE_KEY=sb_publishable_PBdxvJOsUAdFdLWasrz_pA_CGL9kyQM
+SUPABASE_URL=https://SEU_PROJETO.supabase.co
+SUPABASE_ANON_KEY=sb_publishable_...
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
 ### 3. JWT Secret (CRÍTICO)
 
 ```
-JWT_SECRET=b3492bc3-secure-key-change-in-production-2024
+JWT_SECRET=GERAR_UMA_CHAVE_FORTE_E_UNICA
 ```
 
 **⚠️ IMPORTANTE**: Troque este valor por uma chave forte e única em produção. Você pode gerar uma usando:
@@ -41,11 +41,11 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 Estas variáveis com prefixo `VITE_` são para o frontend React/Vite. Configure também na Vercel:
 
 ```
-VITE_SUPABASE_URL=https://eovsglkvefergfyardna.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_PBdxvJOsUAdFdLWasrz_pA_CGL9kyQM
-VITE_DISCORD_CLIENT_ID=1442598539770466540
-VITE_HENRIKDEV_KEY=HDEV-18e1067e-137f-4d8c-a234-8cd7c2ff5952
-VITE_VISIONWALLET_API_KEY=vp_8632ed053c092bd5403c44e9108675987b5b5a4819bb8bb72ba82fe7379eca83
+VITE_SUPABASE_URL=https://SEU_PROJETO.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+VITE_DISCORD_CLIENT_ID=SEU_DISCORD_CLIENT_ID
+VITE_HENRIKDEV_KEY=SUA_HENRIKDEV_KEY
+VITE_VISIONWALLET_API_KEY=SUA_VISIONWALLET_API_KEY
 ```
 
 ## Como Configurar na Vercel

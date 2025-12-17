@@ -197,12 +197,18 @@ export function ProfileCardDemo({
       layout
       className={className}
       style={{
-        backgroundColor: mockProfile.card_color,
-        opacity: mockProfile.card_opacity / 100,
         backdropFilter: `blur(${mockProfile.card_blur}px)`,
         WebkitBackdropFilter: `blur(${mockProfile.card_blur}px)`,
       }}
     >
+      <div
+        className="absolute inset-0 rounded-2xl"
+        style={{
+          backgroundColor: mockProfile.card_color,
+          opacity: (mockProfile.card_opacity >= 100 && mockProfile.card_blur > 0 ? 98 : mockProfile.card_opacity) / 100,
+        }}
+      />
+      <div className="relative z-10">
       <div className="p-6 md:p-8 text-center">
         {/* Avatar */}
         <div className="relative inline-block mb-6">
@@ -375,6 +381,7 @@ export function ProfileCardDemo({
             visualizações
           </div>
         )}
+      </div>
       </div>
     </motion.div>
   );

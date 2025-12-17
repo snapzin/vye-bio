@@ -334,7 +334,7 @@ const Profile = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className={`w-full max-w-2xl rounded-2xl transition-all duration-300 ${
+          className={`relative isolate overflow-hidden w-full max-w-2xl rounded-2xl transition-all duration-300 ${
             profile.card_direction === 'left' ? 'text-left' : 'text-center'
           } ${
             profile.card_style === 'banner' 
@@ -342,12 +342,24 @@ const Profile = () => {
               : 'p-4 sm:p-6 md:p-8'
           }`}
           style={{
-            backgroundColor: profile.card_color || '#000000',
-            opacity: (profile.card_opacity ?? 100) / 100,
             backdropFilter: profile.card_blur ? `blur(${profile.card_blur}px)` : undefined,
             WebkitBackdropFilter: profile.card_blur ? `blur(${profile.card_blur}px)` : undefined,
           }}
         >
+          {(() => {
+            const opacityPct = Math.min(100, Math.max(0, profile.card_opacity ?? 100));
+            const hasBlur = !!profile.card_blur && profile.card_blur > 0;
+            // Backdrop blur só fica visível quando o fundo tem alguma transparência.
+            const bgOpacity = hasBlur && opacityPct >= 100 ? 0.98 : opacityPct / 100;
+            return (
+              <div
+                className="absolute inset-0 rounded-2xl z-0"
+                style={{ backgroundColor: profile.card_color || '#000000', opacity: bgOpacity }}
+              />
+            );
+          })()}
+
+          <div className="relative z-10">
           {/* Banner Header - Only for banner style */}
           {profile.card_style === 'banner' && (
             <div className="h-24 sm:h-32 md:h-40 rounded-t-2xl mb-4 sm:mb-6 -mx-4 sm:-mx-6 md:-mx-8 -mt-4 sm:-mt-6 md:-mt-8 bg-gradient-to-br from-accent/20 to-purple-500/20" />
@@ -549,6 +561,7 @@ const Profile = () => {
               })}
             </motion.div>
           )}
+          </div>
         </motion.div>
       </div>
 

@@ -25,3 +25,15 @@ dist-ssr
 .vercel
 .env
 .env*.local
+.env.*
+!.env.example
+
+# Arquivos temporários/segredos locais
+cid.txt
+csec.txt
+redir.txt
+.__vercel_env_tmp
+scripts/.__vercel_env_tmp
+
+.vercel
+.env*.local

@@ -8,6 +8,10 @@ import ValorantStatusCard from "@/components/ValorantStatusCard";
 import { getSocialIcon } from "@/lib/socialIcons";
 import { BadgeIcon } from "@/lib/badgeIcons";
 
+function clamp(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, n));
+}
+
 export function DashboardPreview() {
   const { previewUserId, previewData, refreshKey } = usePreview();
   const { profile, loading } = useProfile(undefined, previewUserId || undefined, refreshKey);
@@ -151,13 +155,14 @@ export function DashboardPreview() {
         className="flex-1 flex flex-col items-center relative"
       >
         {/* Background Preview */}
-        <div 
+        <div
           className="w-full h-24 rounded-2xl mb-[-40px] relative overflow-hidden"
           style={{
             backgroundColor: displayProfile.background_color || '#0a0a0b',
-            backgroundImage: displayProfile.background_type === 'image' && displayProfile.background_url 
-              ? `url(${displayProfile.background_url})` 
-              : undefined,
+            backgroundImage:
+              displayProfile.background_type === 'image' && displayProfile.background_url
+                ? `url(${displayProfile.background_url})`
+                : undefined,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
@@ -165,22 +170,48 @@ export function DashboardPreview() {
           <div className="absolute inset-0 bg-gradient-to-t from-card/80 to-transparent" />
         </div>
 
-        {/* Banner Preview */}
-        {displayProfile.banner_url && (
-          <div 
-            className="w-full h-16 rounded-xl mb-4 relative overflow-hidden"
-            style={{
-              backgroundImage: `url(${displayProfile.banner_url})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-t from-card/50 to-transparent" />
-          </div>
-        )}
+        {/* Card container (aplica card_color / card_opacity / card_blur do dashboard) */}
+        <div
+          className={`relative isolate overflow-hidden w-full rounded-2xl border border-border/50 px-4 pb-4 pt-14 transition-all ${
+            (displayProfile.card_direction || 'center') === 'left' ? 'text-left' : 'text-center'
+          }`}
+          style={{
+            backdropFilter: displayProfile.card_blur ? `blur(${displayProfile.card_blur}px)` : undefined,
+            WebkitBackdropFilter: displayProfile.card_blur ? `blur(${displayProfile.card_blur}px)` : undefined,
+          }}
+        >
+          {(() => {
+            const opacityPct = clamp(displayProfile.card_opacity ?? 100, 0, 100);
+            const hasBlur = !!displayProfile.card_blur && displayProfile.card_blur > 0;
+            const bgOpacity = hasBlur && opacityPct >= 100 ? 0.98 : opacityPct / 100;
+            return (
+              <div
+                className="absolute inset-0 rounded-2xl z-0"
+                style={{
+                  backgroundColor: displayProfile.card_color || '#000000',
+                  opacity: bgOpacity,
+                }}
+              />
+            );
+          })()}
 
-        {/* Avatar */}
-        <div className="relative z-10">
+          <div className="relative z-10">
+            {/* Banner Preview (inside card, abaixo do topo) */}
+            {displayProfile.banner_url && (
+              <div
+                className="w-full h-16 rounded-xl mb-4 relative overflow-hidden"
+                style={{
+                  backgroundImage: `url(${displayProfile.banner_url})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-t from-card/50 to-transparent" />
+              </div>
+            )}
+
+            {/* Avatar */}
+            <div className="relative z-10 -mt-10 flex justify-center">
           <img
             src={displayProfile.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${displayProfile.display_name || displayProfile.username}`}
             alt={displayProfile.display_name || displayProfile.username}
@@ -193,50 +224,62 @@ export function DashboardPreview() {
             }`}
           />
           <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-2 border-card" />
-        </div>
-
-        {/* Name */}
-        <h3 className="mt-4 text-lg font-bold text-foreground">
-          {displayProfile.display_name || displayProfile.username}
-        </h3>
-
-        {/* Location */}
-        {displayProfile.location && (
-          <div className="flex items-center gap-1.5 mt-2 text-sm text-muted-foreground">
-            <MapPin className="w-3.5 h-3.5" />
-            <span>{displayProfile.location}</span>
-          </div>
-        )}
-
-        {/* Badges */}
-        {displayedBadges.length > 0 && (
-          <div className="mt-3">
-            <div className="mx-auto w-fit max-w-full rounded-2xl bg-secondary/40 border border-border/50 backdrop-blur-sm px-3 py-1.5">
-              <div className="flex items-center justify-center flex-wrap gap-2">
-                {displayedBadges.map((badge) => (
-                  <span
-                    key={badge.id}
-                    className="inline-flex items-center justify-center leading-none w-5 h-5"
-                    title={badge.badge?.name}
-                  >
-                    <BadgeIcon badgeName={badge.badge?.name} icon={badge.badge?.icon} className="w-5 h-5" size={20} />
-                  </span>
-                ))}
-              </div>
             </div>
-          </div>
-        )}
 
-        {/* Bio */}
-        {displayProfile.bio && (
-          <p className="text-sm text-muted-foreground text-center mt-3 line-clamp-2 px-4">
-            {displayProfile.bio}
-          </p>
-        )}
+            {/* Name */}
+            <h3 className="mt-4 text-lg font-bold text-foreground">
+          {displayProfile.display_name || displayProfile.username}
+            </h3>
 
-        {/* Widgets */}
-        {activeWidgets.filter(w => w.is_visible).length > 0 && (
-          <div className="w-full mt-3 space-y-2">
+            {/* Location */}
+            {displayProfile.location && (
+              <div
+                className={`flex items-center gap-1.5 mt-2 text-sm text-muted-foreground ${
+                  (displayProfile.card_direction || 'center') === 'left' ? 'justify-start' : 'justify-center'
+                }`}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>{displayProfile.location}</span>
+              </div>
+            )}
+
+            {/* Badges */}
+            {displayedBadges.length > 0 && (
+              <div className="mt-3">
+                <div
+                  className={`w-fit max-w-full rounded-2xl bg-secondary/40 border border-border/50 backdrop-blur-sm px-3 py-1.5 ${
+                    (displayProfile.card_direction || 'center') === 'left' ? '' : 'mx-auto'
+                  }`}
+                >
+                  <div className="flex items-center justify-center flex-wrap gap-2">
+                    {displayedBadges.map((badge) => (
+                      <span
+                        key={badge.id}
+                        className="inline-flex items-center justify-center leading-none w-5 h-5"
+                        title={badge.badge?.name}
+                      >
+                        <BadgeIcon badgeName={badge.badge?.name} icon={badge.badge?.icon} className="w-5 h-5" size={20} />
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Bio */}
+            {displayProfile.bio && (
+              <p
+                className={`text-sm text-muted-foreground mt-3 line-clamp-2 ${
+                  (displayProfile.card_direction || 'center') === 'left' ? 'text-left' : 'text-center px-4'
+                }`}
+              >
+                {displayProfile.bio}
+              </p>
+            )}
+
+            {/* Widgets */}
+            {activeWidgets.filter(w => w.is_visible).length > 0 && (
+              <div className="w-full mt-3 space-y-2">
             {activeWidgets
               .filter(w => w.is_visible)
               .sort((a, b) => a.sort_order - b.sort_order)
@@ -268,12 +311,12 @@ export function DashboardPreview() {
                 }
                 return null;
               })}
-          </div>
-        )}
+              </div>
+            )}
 
-        {/* Music Player (card) - same order as Profile.tsx: after widgets, before links */}
-        {displayProfile.music_url && (displayProfile.music_player_style || 'card') !== 'floating' && (
-          <div className="w-full mt-3">
+            {/* Music Player (card) - same order as Profile.tsx: after widgets, before links */}
+            {displayProfile.music_url && (displayProfile.music_player_style || 'card') !== 'floating' && (
+              <div className="w-full mt-3">
             <div className="rounded-xl bg-secondary/50 border border-border/50 overflow-hidden">
               <div className="flex gap-3 p-3">
                 {/* Image - lado esquerdo */}
@@ -332,11 +375,17 @@ export function DashboardPreview() {
                 </div>
               </div>
             </div>
-          </div>
-        )}
+              </div>
+            )}
 
-        {/* Mini Links */}
-        <div className={`w-full mt-6 ${(displayProfile?.link_style || 'cards') === 'buttons' ? 'flex flex-wrap gap-2 justify-center' : 'space-y-3'}`}>
+            {/* Mini Links */}
+            <div
+              className={`w-full mt-6 ${
+                (displayProfile?.link_style || 'cards') === 'buttons'
+                  ? 'flex flex-wrap gap-2 justify-center'
+                  : 'space-y-3'
+              }`}
+            >
           {visibleLinks.map((link) => {
             const { Icon, color, isCustom } = getSocialIcon(link.url, link.icon);
             const iconColor = link.icon_color || color;
@@ -393,13 +442,15 @@ export function DashboardPreview() {
               Nenhum link adicionado ainda
             </div>
           )}
-        </div>
+            </div>
 
-        {/* Stats */}
-        <div className="mt-auto pt-6 w-full">
+            {/* Stats */}
+            <div className="mt-auto pt-6 w-full">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Visualizações</span>
             <span className="font-semibold text-foreground">{displayProfile.views_count || 0}</span>
+          </div>
+            </div>
           </div>
         </div>
 

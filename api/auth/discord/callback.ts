@@ -114,15 +114,17 @@ export default async function handler(
         `${req.url?.split('/api')[0] || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:8080')}/api/auth/discord/callback`
     );
 
-    // Para Supabase, tenta sem VITE_ primeiro (serverless functions não têm acesso a VITE_*)
-    const SUPABASE_URL = cleanEnv(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
-    const SUPABASE_ANON_KEY = cleanEnv(
-      process.env.SUPABASE_ANON_KEY ||
-        process.env.SUPABASE_PUBLISHABLE_KEY ||
-        process.env.VITE_SUPABASE_PUBLISHABLE_KEY
-    );
+    // Supabase (em produção, use SEMPRE SUPABASE_URL/SUPABASE_ANON_KEY no Vercel)
+    // Evitamos fallback para VITE_* aqui para não “pegar” valores antigos do frontend e quebrar o backend.
+    const SUPABASE_URL = cleanEnv(process.env.SUPABASE_URL);
+    const SUPABASE_ANON_KEY = cleanEnv(process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY);
     // Verificar JWT_SECRET também
     const JWT_SECRET = cleanEnv(process.env.JWT_SECRET || process.env.VITE_JWT_SECRET);
+
+    // Log seguro (não imprime chave). URL não é segredo — mostramos só o host.
+    const supabaseHost = SUPABASE_URL ? (() => {
+      try { return new URL(SUPABASE_URL).host; } catch { return 'invalid-url'; }
+    })() : undefined;
 
     console.log('Environment variables check:', {
       hasDiscordClientId: !!DISCORD_CLIENT_ID,
@@ -131,6 +133,7 @@ export default async function handler(
       hasSupabaseUrl: !!SUPABASE_URL,
       hasSupabaseKey: !!SUPABASE_ANON_KEY,
       hasJwtSecret: !!JWT_SECRET,
+      supabaseHost,
     });
 
 

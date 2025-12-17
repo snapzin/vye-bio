@@ -201,12 +201,9 @@ async function executeHandler(
             .trim()
         : v;
 
-    const SUPABASE_URL = cleanEnv(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
-    const SUPABASE_ANON_KEY = cleanEnv(
-      process.env.SUPABASE_ANON_KEY ||
-        process.env.SUPABASE_PUBLISHABLE_KEY ||
-        process.env.VITE_SUPABASE_PUBLISHABLE_KEY
-    );
+    // Backend deve usar SEMPRE variáveis sem prefixo VITE_ (Vercel runtime)
+    const SUPABASE_URL = cleanEnv(process.env.SUPABASE_URL);
+    const SUPABASE_ANON_KEY = cleanEnv(process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY);
 
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       try {

@@ -4,8 +4,21 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+function cleanEnv(v?: string): string | undefined {
+  return typeof v === 'string'
+    ? v
+        .replace(/\\r\\n/g, '')
+        .replace(/\\n/g, '')
+        .replace(/\\r/g, '')
+        .replace(/[\r\n]/g, '')
+        .replace(/^"(.*)"$/, '$1')
+        .trim()
+    : v;
+}
+
+// Backend deve usar SEMPRE variáveis sem prefixo VITE_ (Vercel runtime)
+const SUPABASE_URL = cleanEnv(process.env.SUPABASE_URL);
+const SUPABASE_ANON_KEY = cleanEnv(process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY);
 
 /**
  * Verifica se um usuário é admin

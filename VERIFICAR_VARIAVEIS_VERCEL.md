@@ -10,17 +10,17 @@
 2. **Configure estas variáveis OBRIGATÓRIAS:**
 
 ```
-JWT_SECRET=b3492bc3-secure-key-change-in-production-2024
+JWT_SECRET=GERAR_UMA_CHAVE_FORTE_E_UNICA
 ```
 
 ```
-DISCORD_CLIENT_ID=1442598539770466540
-DISCORD_CLIENT_SECRET=tHmEIfFZvPiExkCzGyWIXL91kFD6UVwq
+DISCORD_CLIENT_ID=SEU_DISCORD_CLIENT_ID
+DISCORD_CLIENT_SECRET=SEU_DISCORD_CLIENT_SECRET
 DISCORD_REDIRECT_URI=https://vye-v1.vercel.app/api/auth/discord/callback
 ```
 
 ```
-SUPABASE_URL=https://eovsglkvefqbfkgvnqdi.supabase.co
+SUPABASE_URL=https://SEU_PROJETO.supabase.co
 SUPABASE_ANON_KEY=<sua-chave-aqui>
 ```
 

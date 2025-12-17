@@ -58,6 +58,25 @@ ADD COLUMN IF NOT EXISTS valorant_name TEXT,
 ADD COLUMN IF NOT EXISTS valorant_tag TEXT,
 ADD COLUMN IF NOT EXISTS valorant_puuid TEXT;
 
+-- Campos usados pelo frontend (Aparência / música / premium / cards / links)
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS avatar_shape TEXT,
+ADD COLUMN IF NOT EXISTS banner_url TEXT,
+ADD COLUMN IF NOT EXISTS music_image_url TEXT,
+ADD COLUMN IF NOT EXISTS music_autoplay BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS music_player_style TEXT DEFAULT 'card',
+ADD COLUMN IF NOT EXISTS hide_footer BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS card_color TEXT,
+ADD COLUMN IF NOT EXISTS card_opacity INTEGER,
+ADD COLUMN IF NOT EXISTS card_blur INTEGER,
+ADD COLUMN IF NOT EXISTS card_direction TEXT,
+ADD COLUMN IF NOT EXISTS card_style TEXT,
+ADD COLUMN IF NOT EXISTS link_style TEXT,
+ADD COLUMN IF NOT EXISTS link_button_style TEXT,
+ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS premium_expires_at TIMESTAMP WITH TIME ZONE;
+
 -- Index para lookup por email (se não existir)
 CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email) WHERE email IS NOT NULL;
 
@@ -230,18 +249,24 @@ CREATE POLICY "Allow video management" ON public.user_videos
   FOR ALL USING (true);
 
 -- Notifications: access control será feito via JWT na API (policies abertas)
+DROP POLICY IF EXISTS "Allow notification access" ON public.notifications;
 CREATE POLICY "Allow notification access" ON public.notifications
   FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow notification inserts" ON public.notifications;
 CREATE POLICY "Allow notification inserts" ON public.notifications
   FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Allow notification updates" ON public.notifications;
 CREATE POLICY "Allow notification updates" ON public.notifications
   FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Allow notification deletes" ON public.notifications;
 CREATE POLICY "Allow notification deletes" ON public.notifications
   FOR DELETE USING (true);
 
 -- Widgets: access control via API/JWT
+DROP POLICY IF EXISTS "User widgets are publicly viewable" ON public.user_widgets;
 CREATE POLICY "User widgets are publicly viewable" ON public.user_widgets
   FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow widget management" ON public.user_widgets;
 CREATE POLICY "Allow widget management" ON public.user_widgets
   FOR ALL USING (true);
 

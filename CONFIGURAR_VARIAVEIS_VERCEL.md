@@ -4,16 +4,16 @@
 As variáveis de ambiente devem ser configuradas no **painel do Vercel**, não apenas no arquivo `.env` local.
 
 ## URL do Supabase Configurada
-✅ `SUPABASE_URL = https://eovsglkvefqbfkgvnqdi.supabase.co`
+✅ `SUPABASE_URL = https://SEU_PROJETO.supabase.co`
 
 **Você precisa configurar esta variável no Vercel com este valor exato.**
 
 ## Variáveis Obrigatórias para Configurar no Vercel
 
 ### 1. Supabase (Você já tem a URL)
-- **`SUPABASE_URL`** = `https://eovsglkvefqbfkgvnqdi.supabase.co`
+- **`SUPABASE_URL`** = `https://SEU_PROJETO.supabase.co`
 - **`SUPABASE_ANON_KEY`** = (Você precisa pegar no painel do Supabase)
-  - Acesse: https://supabase.com/dashboard/project/eovsglkvefqbfkgvnqdi/settings/api
+  - Acesse o painel do seu projeto Supabase → Settings → API
   - Copie a chave "anon" ou "public"
 
 ### 2. JWT Secret (OBRIGATÓRIO - causa erro 500 se não configurado)
@@ -46,12 +46,13 @@ As variáveis de ambiente devem ser configuradas no **painel do Vercel**, não a
 3. **Adicione cada variável:**
    - Clique em **Add New**
    - Digite o **Name** (ex: `SUPABASE_URL`)
-   - Digite o **Value** (ex: `https://eovsglkvefqbfkgvnqdi.supabase.co`)
+   - Digite o **Value** (ex: `https://SEU_PROJETO.supabase.co`)
    - Marque os ambientes: **Production**, **Preview**, **Development**
    - Clique em **Save**
 
 4. **Repita para todas as variáveis:**
-   - `SUPABASE_URL` = `https://eovsglkvefqbfkgvnqdi.supabase.co`
+   - `SUPABASE_URL` = `https://SEU_PROJETO.supabase.co`
+   - `SUPABASE_URL` = `https://SEU_PROJETO.supabase.co`
    - `SUPABASE_ANON_KEY` = (sua chave do Supabase)
    - `JWT_SECRET` = (chave gerada)
    - `DISCORD_CLIENT_ID` = (seu Client ID)

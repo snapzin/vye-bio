@@ -6,7 +6,7 @@ O código já está configurado para usar Supabase como banco de dados, mas **vo
 
 ## Passo 1: Acessar o Supabase SQL Editor
 
-1. Acesse: https://supabase.com/dashboard/project/eovsglkvefqbfkgvnqdi
+1. Acesse o painel do seu projeto Supabase (o mesmo projeto configurado em `SUPABASE_URL`)
 2. Vá em **SQL Editor** (menu lateral)
 3. Clique em **New Query**
 
