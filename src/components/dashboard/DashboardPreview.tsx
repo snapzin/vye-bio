@@ -74,9 +74,10 @@ export function DashboardPreview() {
   const youtubeVideoId = musicUrl ? extractYouTubeVideoId(musicUrl)?.videoId : null;
 
   // YouTube player hook - only initialize if we have a valid video ID
+  // No autoplay in dashboard preview - user controls manually
   const youtubePlayer = useYouTubePlayer({
     videoId: youtubeVideoId || '',
-    autoplay: youtubeVideoId ? true : false,
+    autoplay: false,
     loop: true,
     volume: 30,
     onStateChange: (state) => {
@@ -107,7 +108,6 @@ export function DashboardPreview() {
     }
 
     let cancelled = false;
-    let hasTriedAutoplay = false;
     const audioElement = new Audio(displayProfile.music_url);
     audioElement.loop = true;
     audioElement.volume = 0.3;
@@ -125,28 +125,14 @@ export function DashboardPreview() {
     const handleLoadedMetadata = () => {
       if (!cancelled) {
         setDuration(audioElement.duration);
-        // Auto-play when metadata is loaded
-        if (!hasTriedAutoplay) {
-          hasTriedAutoplay = true;
-          audioElement.play().catch(() => {
-            // Tentaremos novamente no canplay
-          });
-        }
+        // No autoplay in dashboard preview - user controls manually
       }
     };
     const handleCanPlay = () => {
-      // Tenta tocar quando o áudio estiver pronto
-      if (!cancelled && !isPlaying && !hasTriedAutoplay) {
-        hasTriedAutoplay = true;
-        audioElement.play().catch(() => {});
-      }
+      // No autoplay in dashboard preview - user controls manually
     };
     const handleLoadedData = () => {
-      // Última tentativa de autoplay
-      if (!cancelled && !isPlaying && !hasTriedAutoplay) {
-        hasTriedAutoplay = true;
-        audioElement.play().catch(() => {});
-      }
+      // No autoplay in dashboard preview - user controls manually
     };
     const handleEnded = () => {
       if (!cancelled) {
