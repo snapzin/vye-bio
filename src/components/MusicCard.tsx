@@ -19,28 +19,42 @@ const MusicCard = ({ profile }: MusicCardProps) => {
   // Check if music_url is YouTube
   const isYouTube = profile?.music_url ? isYouTubeUrl(profile.music_url) : false;
   const youtubeVideoId = profile?.music_url ? extractYouTubeVideoId(profile.music_url)?.videoId : null;
+  
+  // Only initialize YouTube player if not using floating style
+  const shouldInitYouTube = profile?.music_player_style !== 'floating' && youtubeVideoId;
 
-  // YouTube player hook
+  // YouTube player hook - only initialize if not floating
   const youtubePlayer = useYouTubePlayer({
-    videoId: youtubeVideoId || '',
-    autoplay: true,
+    videoId: shouldInitYouTube ? youtubeVideoId : '',
+    autoplay: shouldInitYouTube ? true : false,
     loop: true,
     volume: 50,
     onStateChange: (state) => {
-      setIsPlaying(state === 1);
+      if (profile?.music_player_style !== 'floating') {
+        setIsPlaying(state === 1);
+      }
     },
     onTimeUpdate: (time) => {
-      setCurrentTime(time);
+      if (profile?.music_player_style !== 'floating') {
+        setCurrentTime(time);
+      }
     },
     onDurationChange: (dur) => {
-      setDuration(dur);
+      if (profile?.music_player_style !== 'floating') {
+        setDuration(dur);
+      }
     },
   });
 
   // Initialize audio player (only for non-YouTube URLs)
   useEffect(() => {
-    if (!profile.music_url || isYouTube) {
-      audioRef.current = null;
+    // Don't initialize if using floating player style
+    if (!profile.music_url || profile.music_player_style === 'floating' || isYouTube) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current = null;
+      }
       return;
     }
 
