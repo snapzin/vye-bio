@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Camera, Loader2, Save, Upload, Image, User, Square, Circle, Palette, X, Layout, AlignLeft, AlignCenter, FileText, Trash2 } from "lucide-react";
+import { Camera, Loader2, Save, Upload, Image, User, Square, Circle, Palette, X, Layout, AlignLeft, AlignCenter, FileText, Trash2, Music, Link as LinkIcon } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +28,7 @@ export function DashboardAppearance() {
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
-  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const musicInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     display_name: profile?.display_name || "",
@@ -41,6 +41,10 @@ export function DashboardAppearance() {
     card_blur: profile?.card_blur ?? 0,
     card_direction: profile?.card_direction || "center",
     card_style: profile?.card_style || "default",
+    music_url: profile?.music_url || "",
+    music_title: profile?.music_title || "",
+    music_artist: profile?.music_artist || "",
+    music_image_url: profile?.music_image_url || "",
   });
 
   // Sync formData with profile when profile changes
@@ -57,6 +61,10 @@ export function DashboardAppearance() {
         card_blur: profile.card_blur ?? 0,
         card_direction: profile.card_direction || "center",
         card_style: profile.card_style || "default",
+        music_url: profile.music_url || "",
+        music_title: profile.music_title || "",
+        music_artist: profile.music_artist || "",
+        music_image_url: profile.music_image_url || "",
       });
     }
   }, [profile]);
@@ -90,9 +98,13 @@ export function DashboardAppearance() {
         avatar_shape: profile.avatar_shape,
         username: profile.username,
         banner_url: profile.banner_url,
+        music_url: profile.music_url,
+        music_title: profile.music_title,
+        music_artist: profile.music_artist,
+        music_image_url: profile.music_image_url,
       });
     }
-  }, [profile?.background_url, profile?.background_type, profile?.banner_url, setPreviewData]);
+  }, [profile?.background_url, profile?.background_type, profile?.banner_url, profile?.music_url, profile?.music_title, profile?.music_artist, profile?.music_image_url, setPreviewData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({
@@ -103,7 +115,15 @@ export function DashboardAppearance() {
 
   const handleSave = async () => {
     setSaving(true);
-    const { error } = await updateProfile(formData);
+    const updates = {
+      ...formData,
+      // Normalizar campos de música: string vazia -> null (melhor pro banco e pro player)
+      music_url: formData.music_url?.trim() || null,
+      music_title: formData.music_title?.trim() || null,
+      music_artist: formData.music_artist?.trim() || null,
+      music_image_url: formData.music_image_url?.trim() || null,
+    };
+    const { error } = await updateProfile(updates as any);
     
     if (error) {
       toast.error("Falha ao salvar alterações");
@@ -171,20 +191,33 @@ export function DashboardAppearance() {
     setUploading(null);
   };
 
-  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMusicUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading('banner');
+    setUploading('music');
     try {
+      // Reaproveita o bucket 'backgrounds' (já existe no projeto) para armazenar áudio
       const url = await uploadFile(file, 'backgrounds');
       if (url) {
-        await updateProfile({ banner_url: url });
-        toast.success("Banner atualizado!");
+        await updateProfile({
+          music_url: url,
+          music_title: (file.name || '').replace(/\.[^/.]+$/, '') || null,
+          music_artist: null,
+          music_image_url: null,
+        });
+        setFormData(prev => ({
+          ...prev,
+          music_url: url,
+          music_title: (file.name || '').replace(/\.[^/.]+$/, ''),
+          music_artist: "",
+          music_image_url: "",
+        }));
+        toast.success("Música atualizada!");
         refreshPreview();
       }
     } catch (error) {
-      toast.error("Falha ao enviar banner");
+      toast.error("Falha ao enviar música");
     }
     setUploading(null);
   };
@@ -207,16 +240,28 @@ export function DashboardAppearance() {
     }
   };
 
-  const handleRemoveBanner = async (e: React.MouseEvent) => {
+  const handleRemoveMusic = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setUploading('banner');
+    setUploading('music');
     try {
-      await updateProfile({ banner_url: null });
-      toast.success("Banner removido!");
+      await updateProfile({
+        music_url: null,
+        music_title: null,
+        music_artist: null,
+        music_image_url: null,
+      });
+      setFormData(prev => ({
+        ...prev,
+        music_url: "",
+        music_title: "",
+        music_artist: "",
+        music_image_url: "",
+      }));
+      toast.success("Música removida!");
       refreshPreview();
     } catch {
-      toast.error("Falha ao remover banner");
+      toast.error("Falha ao remover música");
     } finally {
       setUploading(null);
     }
@@ -412,54 +457,96 @@ export function DashboardAppearance() {
             <p className="text-xs text-muted-foreground mt-2">Recommended size: 1920x1080</p>
           </div>
 
-          {/* Banner Image */}
+          {/* Música */}
           <div>
-            <p className="text-sm font-medium text-foreground mb-3">Imagem do Banner</p>
+            <p className="text-sm font-medium text-foreground mb-3">Música do Perfil</p>
             <div 
-              onClick={() => bannerInputRef.current?.click()}
+              onClick={() => musicInputRef.current?.click()}
               className="h-32 rounded-xl border-2 border-dashed border-border hover:border-accent/50 cursor-pointer flex flex-col items-center justify-center gap-2 transition-colors group relative overflow-hidden"
-              style={{
-                backgroundImage: profile.banner_url 
-                  ? `url(${profile.banner_url})` 
-                  : undefined,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }}
             >
-              {profile.banner_url && (
+              {profile.music_url && (
                 <button
                   type="button"
-                  onClick={handleRemoveBanner}
+                  onClick={handleRemoveMusic}
                   className="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-8 h-8 rounded-full bg-background/80 border border-border/60 text-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                  aria-label="Remover banner"
+                  aria-label="Remover música"
                   title="Remover"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               )}
-              {!profile.banner_url && (
+              {profile.music_url ? (
+                <>
+                  <Music className="w-7 h-7 text-muted-foreground group-hover:text-accent transition-colors" />
+                  <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors text-center px-3">
+                    Música configurada
+                  </p>
+                  <p className="text-xs text-muted-foreground text-center px-3">
+                    Clique para trocar
+                  </p>
+                </>
+              ) : (
                 <>
                   <Upload className="w-6 h-6 text-muted-foreground group-hover:text-accent transition-colors" />
                   <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
-                    Drag and drop file here or <span className="text-accent">Choose File</span>
+                    Envie um áudio ou <span className="text-accent">Escolha um arquivo</span>
                   </p>
-                  <p className="text-xs text-muted-foreground">.jpeg, .png, .gif, .webp, .jpg</p>
+                  <p className="text-xs text-muted-foreground">.mp3, .wav, .ogg</p>
                 </>
               )}
-              {uploading === 'banner' && (
+              {uploading === 'music' && (
                 <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-xl">
                   <Loader2 className="w-6 h-6 animate-spin text-accent" />
                 </div>
               )}
             </div>
             <input
-              ref={bannerInputRef}
+              ref={musicInputRef}
               type="file"
-              accept="image/*"
-              onChange={handleBannerUpload}
+              accept="audio/*"
+              onChange={handleMusicUpload}
               className="hidden"
             />
-            <p className="text-xs text-muted-foreground mt-2">Recommended size: 1920x1080</p>
+            <div className="mt-3 space-y-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1.5">
+                  <LinkIcon className="w-3.5 h-3.5" />
+                  Link da música (opcional)
+                </label>
+                <Input
+                  name="music_url"
+                  value={formData.music_url}
+                  onChange={handleInputChange}
+                  placeholder="Cole um link direto para áudio (ex: .mp3)"
+                  className="bg-secondary/50"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Dica: para tocar no perfil, precisa ser um link direto para arquivo de áudio (ou com CORS liberado).
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Título (opcional)</label>
+                  <Input
+                    name="music_title"
+                    value={formData.music_title}
+                    onChange={handleInputChange}
+                    placeholder="Ex: Minha Música"
+                    className="bg-secondary/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Artista (opcional)</label>
+                  <Input
+                    name="music_artist"
+                    value={formData.music_artist}
+                    onChange={handleInputChange}
+                    placeholder="Ex: Eu"
+                    className="bg-secondary/50"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
