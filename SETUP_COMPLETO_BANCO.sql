@@ -104,6 +104,30 @@ CREATE TABLE IF NOT EXISTS public.user_videos (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
+-- Criar tabela notifications (usado pelo dashboard)
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'info' CHECK (type IN ('info', 'success', 'warning', 'error')),
+  is_read BOOLEAN NOT NULL DEFAULT false,
+  link TEXT,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+-- Criar tabela user_widgets (usado pelo dashboard)
+CREATE TABLE IF NOT EXISTS public.user_widgets (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL,
+  widget_type TEXT NOT NULL CHECK (widget_type IN ('discord', 'valorant', 'roblox')),
+  sort_order INTEGER DEFAULT 0,
+  is_visible BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
 -- ============================================================================
 -- PARTE 2: HABILITAR RLS E CRIAR POLÍTICAS
 -- ============================================================================
@@ -114,6 +138,8 @@ ALTER TABLE public.user_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.badges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_badges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_videos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_widgets ENABLE ROW LEVEL SECURITY;
 
 -- Remover políticas antigas (se existirem)
 DROP POLICY IF EXISTS "Profiles are publicly viewable" ON public.profiles;
@@ -136,6 +162,14 @@ DROP POLICY IF EXISTS "Allow badge management" ON public.user_badges;
 DROP POLICY IF EXISTS "Videos are publicly viewable" ON public.user_videos;
 DROP POLICY IF EXISTS "Users can manage own videos" ON public.user_videos;
 DROP POLICY IF EXISTS "Allow video management" ON public.user_videos;
+
+DROP POLICY IF EXISTS "Allow notification access" ON public.notifications;
+DROP POLICY IF EXISTS "Allow notification inserts" ON public.notifications;
+DROP POLICY IF EXISTS "Allow notification updates" ON public.notifications;
+DROP POLICY IF EXISTS "Allow notification deletes" ON public.notifications;
+
+DROP POLICY IF EXISTS "User widgets are publicly viewable" ON public.user_widgets;
+DROP POLICY IF EXISTS "Allow widget management" ON public.user_widgets;
 
 -- Criar novas políticas (sem dependência de auth.uid())
 DROP POLICY IF EXISTS "Profiles are publicly viewable" ON public.profiles;
@@ -176,6 +210,22 @@ CREATE POLICY "Videos are publicly viewable" ON public.user_videos
 
 DROP POLICY IF EXISTS "Allow video management" ON public.user_videos;
 CREATE POLICY "Allow video management" ON public.user_videos
+  FOR ALL USING (true);
+
+-- Notifications: access control será feito via JWT na API (policies abertas)
+CREATE POLICY "Allow notification access" ON public.notifications
+  FOR SELECT USING (true);
+CREATE POLICY "Allow notification inserts" ON public.notifications
+  FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow notification updates" ON public.notifications
+  FOR UPDATE USING (true);
+CREATE POLICY "Allow notification deletes" ON public.notifications
+  FOR DELETE USING (true);
+
+-- Widgets: access control via API/JWT
+CREATE POLICY "User widgets are publicly viewable" ON public.user_widgets
+  FOR SELECT USING (true);
+CREATE POLICY "Allow widget management" ON public.user_widgets
   FOR ALL USING (true);
 
 -- ============================================================================
