@@ -592,7 +592,7 @@ export function DashboardAppearance() {
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1.5">
-                    Artista (editável)
+                    Artista {isYouTubeUrl(formData.music_url) ? '(do YouTube)' : '(editável)'}
                     {isFetchingMetadata && (
                       <Loader2 className="w-3 h-3 animate-spin text-accent" />
                     )}
@@ -603,13 +603,13 @@ export function DashboardAppearance() {
                     onChange={handleInputChange}
                     placeholder="Ex: Eu"
                     className="bg-secondary/50"
-                    disabled={isFetchingMetadata}
+                    disabled={isFetchingMetadata || isYouTubeUrl(formData.music_url)}
                   />
                 </div>
               </div>
               {isYouTubeUrl(formData.music_url) && (
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  💡 Título e artista são preenchidos automaticamente do YouTube. Você pode editá-los livremente.
+                  💡 Título e artista são preenchidos automaticamente do YouTube. O título pode ser editado, mas o artista vem do YouTube.
                 </p>
               )}
             </div>
