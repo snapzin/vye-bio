@@ -123,39 +123,50 @@ DROP POLICY IF EXISTS "Badges are publicly viewable" ON public.badges;
 DROP POLICY IF EXISTS "User badges are publicly viewable" ON public.user_badges;
 DROP POLICY IF EXISTS "Users can toggle own badge display" ON public.user_badges;
 DROP POLICY IF EXISTS "Allow badge display toggle" ON public.user_badges;
+DROP POLICY IF EXISTS "Allow badge management" ON public.user_badges;
 
 DROP POLICY IF EXISTS "Videos are publicly viewable" ON public.user_videos;
 DROP POLICY IF EXISTS "Users can manage own videos" ON public.user_videos;
 DROP POLICY IF EXISTS "Allow video management" ON public.user_videos;
 
 -- Criar novas políticas (sem dependência de auth.uid())
+DROP POLICY IF EXISTS "Profiles are publicly viewable" ON public.profiles;
 CREATE POLICY "Profiles are publicly viewable" ON public.profiles
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Allow profile inserts" ON public.profiles;
 CREATE POLICY "Allow profile inserts" ON public.profiles
   FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow profile updates" ON public.profiles;
 CREATE POLICY "Allow profile updates" ON public.profiles
   FOR UPDATE USING (true);
 
+DROP POLICY IF EXISTS "Links are publicly viewable" ON public.user_links;
 CREATE POLICY "Links are publicly viewable" ON public.user_links
   FOR SELECT USING (is_visible = true);
 
+DROP POLICY IF EXISTS "Allow link management" ON public.user_links;
 CREATE POLICY "Allow link management" ON public.user_links
   FOR ALL USING (true);
 
+DROP POLICY IF EXISTS "Badges are publicly viewable" ON public.badges;
 CREATE POLICY "Badges are publicly viewable" ON public.badges
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "User badges are publicly viewable" ON public.user_badges;
 CREATE POLICY "User badges are publicly viewable" ON public.user_badges
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Allow badge management" ON public.user_badges;
 CREATE POLICY "Allow badge management" ON public.user_badges
   FOR ALL USING (true);
 
+DROP POLICY IF EXISTS "Videos are publicly viewable" ON public.user_videos;
 CREATE POLICY "Videos are publicly viewable" ON public.user_videos
   FOR SELECT USING (is_visible = true);
 
+DROP POLICY IF EXISTS "Allow video management" ON public.user_videos;
 CREATE POLICY "Allow video management" ON public.user_videos
   FOR ALL USING (true);
 
