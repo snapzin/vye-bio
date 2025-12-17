@@ -187,8 +187,26 @@ async function executeHandler(
       return res.status(400).json({ error: 'Ação inválida. Use: login, register ou session' });
     }
 
-    const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const cleanEnv = (v?: string) =>
+      typeof v === 'string'
+        ? v
+            // remove sequências escapadas (quando a env foi salva com "\r\n")
+            .replace(/\\r\\n/g, '')
+            .replace(/\\n/g, '')
+            .replace(/\\r/g, '')
+            // remove quebras reais
+            .replace(/[\r\n]/g, '')
+            // remove aspas ao redor
+            .replace(/^"(.*)"$/, '$1')
+            .trim()
+        : v;
+
+    const SUPABASE_URL = cleanEnv(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
+    const SUPABASE_ANON_KEY = cleanEnv(
+      process.env.SUPABASE_ANON_KEY ||
+        process.env.SUPABASE_PUBLISHABLE_KEY ||
+        process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+    );
 
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       try {

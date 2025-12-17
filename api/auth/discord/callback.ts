@@ -102,9 +102,24 @@ export default async function handler(
       process.env.VITE_DISCORD_REDIRECT_URI ||
       `${req.url?.split('/api')[0] || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:8080')}/api/auth/discord/callback`
     );
+    const cleanEnv = (v?: string) =>
+      typeof v === 'string'
+        ? v
+            .replace(/\\r\\n/g, '')
+            .replace(/\\n/g, '')
+            .replace(/\\r/g, '')
+            .replace(/[\r\n]/g, '')
+            .replace(/^"(.*)"$/, '$1')
+            .trim()
+        : v;
+
     // Para Supabase, tenta sem VITE_ primeiro (serverless functions não têm acesso a VITE_*)
-    const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const SUPABASE_URL = cleanEnv(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
+    const SUPABASE_ANON_KEY = cleanEnv(
+      process.env.SUPABASE_ANON_KEY ||
+        process.env.SUPABASE_PUBLISHABLE_KEY ||
+        process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+    );
     // Verificar JWT_SECRET também
     const JWT_SECRET = process.env.JWT_SECRET || process.env.VITE_JWT_SECRET;
 
