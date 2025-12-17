@@ -122,21 +122,19 @@ export function DashboardAppearance() {
     const fetchMetadata = async () => {
       const musicUrl = formData.music_url?.trim();
       if (!musicUrl || !isYouTubeUrl(musicUrl)) {
-        lastFetchedUrlRef.current = '';
+        // Clear ref if not YouTube URL
+        if (lastFetchedUrlRef.current) {
+          lastFetchedUrlRef.current = '';
+        }
         return;
       }
 
-      // Don't fetch if we already fetched for this URL
+      // Don't fetch if we already fetched for this exact URL
       if (lastFetchedUrlRef.current === musicUrl) {
         return;
       }
 
-      // Only fetch if title or artist is empty (to avoid overwriting user edits)
-      // But allow fetching if URL changed (user pasted new URL)
-      if (formData.music_title && formData.music_artist && lastFetchedUrlRef.current) {
-        return;
-      }
-
+      // URL changed - always fetch new metadata
       setIsFetchingMetadata(true);
       try {
         const metadata = await fetchYouTubeMetadata(musicUrl);
@@ -144,14 +142,17 @@ export function DashboardAppearance() {
           lastFetchedUrlRef.current = musicUrl;
           setFormData(prev => ({
             ...prev,
-            // Only update if field is empty or if URL changed
-            music_title: prev.music_title || metadata.title || '',
-            music_artist: prev.music_artist || metadata.author_name || '',
+            // Always update when URL changes (new video = new metadata)
+            music_title: metadata.title || prev.music_title || '',
+            music_artist: metadata.author_name || prev.music_artist || '',
+            // Also update thumbnail if available
+            music_image_url: metadata.thumbnail_url || prev.music_image_url || '',
           }));
           toast.success("Metadados do YouTube carregados!");
         }
       } catch (error) {
         console.error('Error fetching YouTube metadata:', error);
+        toast.error("Erro ao carregar metadados do YouTube");
       } finally {
         setIsFetchingMetadata(false);
       }
