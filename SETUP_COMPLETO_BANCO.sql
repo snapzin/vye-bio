@@ -47,6 +47,14 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 ALTER TABLE public.profiles 
 ADD COLUMN IF NOT EXISTS discord_user_id TEXT;
 
+-- Adicionar colunas para autenticação por email/senha (usadas por /api/auth)
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS email TEXT,
+ADD COLUMN IF NOT EXISTS password_hash TEXT;
+
+-- Index para lookup por email (se não existir)
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email) WHERE email IS NOT NULL;
+
 -- Criar tabela user_links
 CREATE TABLE IF NOT EXISTS public.user_links (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
