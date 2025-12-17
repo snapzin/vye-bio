@@ -24,27 +24,6 @@ export function DashboardPreview() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Check if music_url is YouTube (from displayProfile)
-  const isYouTube = displayProfile?.music_url ? isYouTubeUrl(displayProfile.music_url) : false;
-  const youtubeVideoId = displayProfile?.music_url ? extractYouTubeVideoId(displayProfile.music_url)?.videoId : null;
-
-  // YouTube player hook
-  const youtubePlayer = useYouTubePlayer({
-    videoId: youtubeVideoId || '',
-    autoplay: true,
-    loop: true,
-    volume: 30,
-    onStateChange: (state) => {
-      setIsPlaying(state === 1);
-    },
-    onTimeUpdate: (time) => {
-      setCurrentTime(time);
-    },
-    onDurationChange: (dur) => {
-      setDuration(dur);
-    },
-  });
   
   // Keep previous profile data to avoid flickering during updates
   const [cachedProfile, setCachedProfile] = useState<typeof profile>(null);
@@ -88,6 +67,27 @@ export function DashboardPreview() {
   const displayProfile = effectiveProfile
     ? { ...effectiveProfile, ...(previewData || {}) }
     : null;
+
+  // Check if music_url is YouTube (from displayProfile) - MUST be after displayProfile is defined
+  const isYouTube = displayProfile?.music_url ? isYouTubeUrl(displayProfile.music_url) : false;
+  const youtubeVideoId = displayProfile?.music_url ? extractYouTubeVideoId(displayProfile.music_url)?.videoId : null;
+
+  // YouTube player hook
+  const youtubePlayer = useYouTubePlayer({
+    videoId: youtubeVideoId || '',
+    autoplay: true,
+    loop: true,
+    volume: 30,
+    onStateChange: (state) => {
+      setIsPlaying(state === 1);
+    },
+    onTimeUpdate: (time) => {
+      setCurrentTime(time);
+    },
+    onDurationChange: (dur) => {
+      setDuration(dur);
+    },
+  });
 
   // Initialize audio player when music_url changes (only for non-YouTube URLs)
   // IMPORTANT: All hooks must be called before any conditional returns
