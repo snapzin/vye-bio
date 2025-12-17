@@ -800,7 +800,7 @@ const Profile = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
-            className="relative z-10 w-full py-8 text-center mt-auto"
+            className="relative z-10 w-full py-6 sm:py-8 text-center mt-auto px-4"
           >
             <a
               href="/"
