@@ -185,10 +185,11 @@ const Profile = () => {
   const isYouTube = profile?.music_url ? isYouTubeUrl(profile.music_url) : false;
   const youtubeVideoId = profile?.music_url ? extractYouTubeVideoId(profile.music_url)?.videoId : null;
 
-  // YouTube player hook
+  // YouTube player hook - only initialize if using floating player style
+  const shouldUseFloatingPlayer = profile?.music_player_style === 'floating';
   const youtubePlayer = useYouTubePlayer({
-    videoId: youtubeVideoId || '',
-    autoplay: true,
+    videoId: (shouldUseFloatingPlayer && youtubeVideoId) ? youtubeVideoId : '',
+    autoplay: shouldUseFloatingPlayer ? true : false,
     loop: true,
     volume: 50,
     onReady: () => {
@@ -196,13 +197,19 @@ const Profile = () => {
     },
     onStateChange: (state) => {
       // 1 = playing, 2 = paused, 0 = ended
-      setIsPlaying(state === 1);
+      if (shouldUseFloatingPlayer) {
+        setIsPlaying(state === 1);
+      }
     },
     onTimeUpdate: (time) => {
-      setCurrentTime(time);
+      if (shouldUseFloatingPlayer) {
+        setCurrentTime(time);
+      }
     },
     onDurationChange: (dur) => {
-      setDuration(dur);
+      if (shouldUseFloatingPlayer) {
+        setDuration(dur);
+      }
     },
     onError: (error) => {
       console.error('YouTube player error:', error);
@@ -242,8 +249,9 @@ const Profile = () => {
   }, [profile, username]);
 
   // Initialize audio player (only for non-YouTube URLs)
+  // Only initialize if using floating player style, otherwise MusicCard handles it
   useEffect(() => {
-    if (profile?.music_url && !isYouTube) {
+    if (profile?.music_url && !isYouTube && profile.music_player_style === 'floating') {
       const audioElement = new Audio(profile.music_url);
       audioElement.loop = true;
       audioElement.volume = 0.5;
@@ -331,8 +339,10 @@ const Profile = () => {
     }
   }, [profile?.music_url, isYouTube]);
 
-  // Handle play/pause
+  // Handle play/pause - only for floating player
   const togglePlay = () => {
+    if (!shouldUseFloatingPlayer) return; // MusicCard handles it otherwise
+    
     if (isYouTube && youtubeVideoId) {
       youtubePlayer.togglePlay();
     } else if (audio) {
@@ -364,8 +374,10 @@ const Profile = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Handle progress bar click
+  // Handle progress bar click - only for floating player
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!shouldUseFloatingPlayer) return; // MusicCard handles it otherwise
+    
     if (isYouTube && youtubeVideoId && youtubePlayer.duration) {
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
