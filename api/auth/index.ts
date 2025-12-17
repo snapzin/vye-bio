@@ -529,7 +529,19 @@ async function executeHandler(
         .single();
 
       if (profileError) {
-        throw new Error('Erro ao criar conta');
+        console.error('Error creating profile (register):', profileError);
+        try {
+          if (setCorsHeaders) setCorsHeaders(origin, res);
+        } catch (e) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(500).json({
+          error: 'Erro ao criar conta',
+          details: profileError.message,
+          code: profileError.code,
+          hint: profileError.hint,
+        });
       }
 
       let jwtToken: string;
