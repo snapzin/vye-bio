@@ -314,7 +314,22 @@ const Profile = () => {
   // Initialize audio player (only for non-YouTube URLs)
   // Only initialize if using floating player style, otherwise MusicCard handles it
   useEffect(() => {
-    if (profile?.music_url && !isYouTube && profile.music_player_style === 'floating') {
+    // Only initialize if using floating player AND we have a music URL
+    if (!shouldUseFloatingPlayer || !profile?.music_url || isYouTube) {
+      // Clean up if not using floating player
+      if (audio) {
+        audio.pause();
+        setAudio(null);
+      }
+      if (!isYouTube) {
+        setIsPlaying(false);
+        setCurrentTime(0);
+        setDuration(0);
+      }
+      return;
+    }
+
+    if (profile.music_url && !isYouTube) {
       const audioElement = new Audio(profile.music_url);
       audioElement.loop = true;
       audioElement.volume = 0.5;
@@ -327,16 +342,24 @@ const Profile = () => {
         userPausedRef.current = false;
       };
       const handlePause = () => {
-        setIsPlaying(false);
-        userPausedRef.current = true;
+        // Only update state if we're actually paused
+        if (audioElement.paused) {
+          setIsPlaying(false);
+          userPausedRef.current = true;
+        }
       };
       const handleEnded = () => {
         setIsPlaying(false);
         // Only restart if user hasn't manually paused
         if (!userPausedRef.current && audioElement.loop) {
-          // Let the loop attribute handle it, but ensure it plays
+          // Restart the loop
           audioElement.currentTime = 0;
-          audioElement.play().catch(() => {});
+          // Small delay to ensure pause state is respected
+          setTimeout(() => {
+            if (!userPausedRef.current) {
+              audioElement.play().catch(() => {});
+            }
+          }, 100);
         }
       };
       const handleTimeUpdate = () => setCurrentTime(audioElement.currentTime);
@@ -392,39 +415,56 @@ const Profile = () => {
         audioElement.removeEventListener('canplay', handleCanPlay);
         audioElement.removeEventListener('loadeddata', handleLoadedData);
       };
-    } else {
-      setAudio(null);
-      if (!isYouTube) {
-        setIsPlaying(false);
-        setCurrentTime(0);
-        setDuration(0);
-      }
     }
-  }, [profile?.music_url, isYouTube]);
+  }, [profile?.music_url, isYouTube, shouldUseFloatingPlayer]);
 
   // Handle play/pause - only for floating player
   const togglePlay = () => {
     if (!shouldUseFloatingPlayer) return; // MusicCard handles it otherwise
     
-    if (isYouTube && youtubeVideoId) {
-      youtubePlayer.togglePlay();
+    if (isYouTube && youtubeVideoId && youtubePlayer.isReady) {
+      // For YouTube, use the hook's methods directly
+      if (youtubePlayer.isPlaying) {
+        youtubePlayer.pause();
+      } else {
+        youtubePlayer.play();
+      }
     } else if (audio) {
-      if (isPlaying) {
+      // For audio, check actual playback state
+      const isActuallyPlaying = !audio.paused;
+      if (isActuallyPlaying) {
         // Pause and ensure it stays paused
         userPausedRef.current = true;
         audio.pause();
-        setIsPlaying(false);
+        // Force pause by setting currentTime (triggers pause event)
+        const currentTime = audio.currentTime;
+        audio.currentTime = currentTime;
       } else {
         // Play and ensure state is updated
         userPausedRef.current = false;
-        audio.play()
-          .then(() => {
-            setIsPlaying(true);
-          })
-          .catch((error) => {
-            console.error('Error playing audio:', error);
-            setIsPlaying(false);
-          });
+        // Ensure audio is loaded before playing
+        if (audio.readyState >= 2) {
+          audio.play()
+            .then(() => {
+              // State will be updated by the play event
+            })
+            .catch((error) => {
+              console.error('Error playing audio:', error);
+              setIsPlaying(false);
+              userPausedRef.current = true;
+            });
+        } else {
+          // Wait for audio to be ready
+          audio.addEventListener('canplay', () => {
+            if (!userPausedRef.current) {
+              audio.play().catch((error) => {
+                console.error('Error playing audio:', error);
+                setIsPlaying(false);
+                userPausedRef.current = true;
+              });
+            }
+          }, { once: true });
+        }
       }
     }
   };
