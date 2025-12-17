@@ -8,7 +8,7 @@ import {
   Music,
   X
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useProfile, useUserLinks, useUserBadges, useUserWidgets, type Badge, type Profile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import DiscordStatusCard from "@/components/DiscordStatusCard";
@@ -179,6 +179,7 @@ const Profile = () => {
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const userPausedRef = useRef(false);
 
   // Check if music_url is YouTube
   const isYouTube = profile?.music_url ? isYouTubeUrl(profile.music_url) : false;
@@ -250,12 +251,19 @@ const Profile = () => {
       
       let hasTriedAutoplay = false;
 
-      const handlePlay = () => setIsPlaying(true);
-      const handlePause = () => setIsPlaying(false);
+      const handlePlay = () => {
+        setIsPlaying(true);
+        userPausedRef.current = false;
+      };
+      const handlePause = () => {
+        setIsPlaying(false);
+        userPausedRef.current = true;
+      };
       const handleEnded = () => {
         setIsPlaying(false);
-        // Restart if loop is enabled
-        if (audioElement.loop) {
+        // Only restart if user hasn't manually paused
+        if (!userPausedRef.current && audioElement.loop) {
+          // Let the loop attribute handle it, but ensure it plays
           audioElement.currentTime = 0;
           audioElement.play().catch(() => {});
         }
@@ -275,6 +283,7 @@ const Profile = () => {
       const handleDurationChange = () => setDuration(audioElement.duration);
       const handleCanPlay = () => {
         // Tenta tocar quando o áudio estiver pronto (se ainda não estiver tocando)
+        // Only autoplay on initial load, not if user has manually paused
         if (!isPlaying && !hasTriedAutoplay) {
           hasTriedAutoplay = true;
           audioElement.play().catch(() => {
@@ -328,11 +337,21 @@ const Profile = () => {
       youtubePlayer.togglePlay();
     } else if (audio) {
       if (isPlaying) {
+        // Pause and ensure it stays paused
+        userPausedRef.current = true;
         audio.pause();
+        setIsPlaying(false);
       } else {
-        audio.play().catch((error) => {
-          console.error('Error playing audio:', error);
-        });
+        // Play and ensure state is updated
+        userPausedRef.current = false;
+        audio.play()
+          .then(() => {
+            setIsPlaying(true);
+          })
+          .catch((error) => {
+            console.error('Error playing audio:', error);
+            setIsPlaying(false);
+          });
       }
     }
   };

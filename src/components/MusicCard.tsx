@@ -14,6 +14,7 @@ const MusicCard = ({ profile }: MusicCardProps) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const userPausedRef = useRef(false);
 
   // Check if music_url is YouTube
   const isYouTube = profile?.music_url ? isYouTubeUrl(profile.music_url) : false;
@@ -62,11 +63,19 @@ const MusicCard = ({ profile }: MusicCardProps) => {
         });
       }
     };
+    const handlePlay = () => {
+      setIsPlaying(true);
+      userPausedRef.current = false;
+    };
+    const handlePause = () => {
+      setIsPlaying(false);
+      userPausedRef.current = true;
+    };
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
-      // Restart if loop is enabled
-      if (audio.loop) {
+      // Only restart if user hasn't manually paused
+      if (!userPausedRef.current && audio.loop) {
         audio.currentTime = 0;
         audio.play().catch(() => {});
       }
@@ -88,6 +97,8 @@ const MusicCard = ({ profile }: MusicCardProps) => {
 
     audio.addEventListener("timeupdate", updateTime);
     audio.addEventListener("loadedmetadata", updateDuration);
+    audio.addEventListener("play", handlePlay);
+    audio.addEventListener("pause", handlePause);
     audio.addEventListener("ended", handleEnded);
     audio.addEventListener("canplay", handleCanPlay);
     audio.addEventListener("loadeddata", handleLoadedData);
@@ -95,6 +106,8 @@ const MusicCard = ({ profile }: MusicCardProps) => {
     return () => {
       audio.removeEventListener("timeupdate", updateTime);
       audio.removeEventListener("loadedmetadata", updateDuration);
+      audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("pause", handlePause);
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("canplay", handleCanPlay);
       audio.removeEventListener("loadeddata", handleLoadedData);
@@ -109,9 +122,18 @@ const MusicCard = ({ profile }: MusicCardProps) => {
       return;
     }
     if (!audioRef.current) return;
+    
+    // Ensure audio state matches isPlaying state
     if (isPlaying) {
-      audioRef.current.play();
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // If play fails, update state to reflect that
+          setIsPlaying(false);
+        });
+      }
     } else {
+      // Force pause when isPlaying is false
       audioRef.current.pause();
     }
   }, [isPlaying, isYouTube]);
@@ -120,7 +142,13 @@ const MusicCard = ({ profile }: MusicCardProps) => {
     if (isYouTube && youtubeVideoId) {
       youtubePlayer.togglePlay();
     } else {
-      setIsPlaying(!isPlaying);
+      if (isPlaying) {
+        userPausedRef.current = true;
+        setIsPlaying(false);
+      } else {
+        userPausedRef.current = false;
+        setIsPlaying(true);
+      }
     }
   };
 
