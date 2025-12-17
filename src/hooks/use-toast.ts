@@ -70,17 +70,20 @@ const addToRemoveQueue = (toastId: string) => {
 };
 
 export const reducer = (state: State, action: Action): State => {
+  // Defensive: ensure state always has toasts array
+  const safeState = state || { toasts: [] };
+  
   switch (action.type) {
     case "ADD_TOAST":
       return {
-        ...state,
-        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+        ...safeState,
+        toasts: [action.toast, ...(safeState.toasts || [])].slice(0, TOAST_LIMIT),
       };
 
     case "UPDATE_TOAST":
       return {
-        ...state,
-        toasts: state.toasts.map((t) => (t.id === action.toast.id ? { ...t, ...action.toast } : t)),
+        ...safeState,
+        toasts: (safeState.toasts || []).map((t) => (t.id === action.toast.id ? { ...t, ...action.toast } : t)),
       };
 
     case "DISMISS_TOAST": {
@@ -91,14 +94,14 @@ export const reducer = (state: State, action: Action): State => {
       if (toastId) {
         addToRemoveQueue(toastId);
       } else {
-        state.toasts.forEach((toast) => {
+        (safeState.toasts || []).forEach((toast) => {
           addToRemoveQueue(toast.id);
         });
       }
 
       return {
-        ...state,
-        toasts: state.toasts.map((t) =>
+        ...safeState,
+        toasts: (safeState.toasts || []).map((t) =>
           t.id === toastId || toastId === undefined
             ? {
                 ...t,
@@ -111,13 +114,13 @@ export const reducer = (state: State, action: Action): State => {
     case "REMOVE_TOAST":
       if (action.toastId === undefined) {
         return {
-          ...state,
+          ...safeState,
           toasts: [],
         };
       }
       return {
-        ...state,
-        toasts: state.toasts.filter((t) => t.id !== action.toastId),
+        ...safeState,
+        toasts: (safeState.toasts || []).filter((t) => t.id !== action.toastId),
       };
     default:
       // Defensive: never return undefined state (prevents `.map` crashes in Toaster)

@@ -117,28 +117,30 @@ export function useYouTubePlayer(options: UseYouTubePlayerOptions): UseYouTubePl
 
   useEffect(() => {
     // Check if API is already loaded
-    if (window.YT && window.YT.Player) {
+    if (typeof window !== 'undefined' && window.YT && window.YT.Player) {
       setApiReady(true);
       return;
     }
 
     // Check if script is loading
     const checkInterval = setInterval(() => {
-      if (window.YT && window.YT.Player) {
+      if (typeof window !== 'undefined' && window.YT && window.YT.Player) {
         setApiReady(true);
         clearInterval(checkInterval);
       }
     }, 100);
 
     // Set up callback for when API loads
-    const originalCallback = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => {
-      setApiReady(true);
-      clearInterval(checkInterval);
-      if (originalCallback) {
-        originalCallback();
-      }
-    };
+    if (typeof window !== 'undefined') {
+      const originalCallback = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        setApiReady(true);
+        clearInterval(checkInterval);
+        if (originalCallback) {
+          originalCallback();
+        }
+      };
+    }
 
     // Cleanup
     return () => {
@@ -148,7 +150,7 @@ export function useYouTubePlayer(options: UseYouTubePlayerOptions): UseYouTubePl
 
   // Create player instance
   useEffect(() => {
-    if (!videoId || !apiReady || !window.YT || !window.YT.Player) {
+    if (!videoId || !apiReady || typeof window === 'undefined' || !window.YT || !window.YT.Player) {
       return;
     }
 

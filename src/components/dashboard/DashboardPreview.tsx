@@ -69,13 +69,14 @@ export function DashboardPreview() {
     : null;
 
   // Check if music_url is YouTube (from displayProfile) - MUST be after displayProfile is defined
-  const isYouTube = displayProfile?.music_url ? isYouTubeUrl(displayProfile.music_url) : false;
-  const youtubeVideoId = displayProfile?.music_url ? extractYouTubeVideoId(displayProfile.music_url)?.videoId : null;
+  const musicUrl = displayProfile?.music_url;
+  const isYouTube = musicUrl ? isYouTubeUrl(musicUrl) : false;
+  const youtubeVideoId = musicUrl ? extractYouTubeVideoId(musicUrl)?.videoId : null;
 
-  // YouTube player hook
+  // YouTube player hook - only initialize if we have a valid video ID
   const youtubePlayer = useYouTubePlayer({
     videoId: youtubeVideoId || '',
-    autoplay: true,
+    autoplay: youtubeVideoId ? true : false,
     loop: true,
     volume: 30,
     onStateChange: (state) => {
