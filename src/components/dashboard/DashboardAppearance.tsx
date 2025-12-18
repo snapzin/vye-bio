@@ -149,11 +149,11 @@ export function DashboardAppearance() {
             // Also update thumbnail if available
             music_image_url: metadata.thumbnail_url || prev.music_image_url || '',
           }));
-          toast.success("Metadados do YouTube carregados!");
+          // Metadados carregados silenciosamente, sem notificação
         }
       } catch (error) {
         console.error('Error fetching YouTube metadata:', error);
-        toast.error("Erro ao carregar metadados do YouTube");
+        // Erro silencioso, sem notificação
       } finally {
         setIsFetchingMetadata(false);
       }

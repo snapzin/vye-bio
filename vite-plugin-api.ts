@@ -249,6 +249,10 @@ export function vitePluginApi(): Plugin {
             handlerPath = '/api/auth/discord/callback.ts';
           } else if (url.startsWith('/api/auth/discord')) {
             handlerPath = '/api/auth/discord.ts';
+          } else if (url.startsWith('/api/discord')) {
+            handlerPath = '/api/discord.ts';
+          } else if (url.startsWith('/api/valorant')) {
+            handlerPath = '/api/valorant.ts';
           } else {
             res.writeHead(404, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Rota não encontrada' }));

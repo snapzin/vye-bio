@@ -297,8 +297,9 @@ export const useDiscordData = (discordUserId: string | null) => {
       try {
         setIsLoading(true);
 
+        // Usar proxy do backend para evitar problemas de CORS
         const response = await fetch(
-          `https://api.victims.bio/discord/user/${discordUserId}`,
+          `/api/discord?userId=${encodeURIComponent(discordUserId)}`,
           {
             headers: {
               'Accept': 'application/json',
