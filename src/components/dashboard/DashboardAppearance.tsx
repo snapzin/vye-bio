@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Camera, Loader2, Save, Upload, Image, User, Square, Circle, Palette, X, Layout, AlignLeft, AlignCenter, FileText, Trash2, Music, Link as LinkIcon } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { ColorPicker } from "@/components/ui/color-picker";
+import { ColorInput } from "@/components/ui/color-input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
 import { motion } from "framer-motion";
@@ -675,14 +676,16 @@ export function DashboardAppearance() {
         {/* Color Picker */}
         <div className="mt-6">
           <label className="text-sm font-medium text-foreground mb-3 block">Cor de Fundo</label>
-          <ColorPicker
+          <ColorInput
+            defaultValue={formData.background_color || "#0a0a0b"}
             value={formData.background_color || "#0a0a0b"}
             onChange={(color) => {
               setFormData(prev => ({ ...prev, background_color: color }));
               updateProfile({ background_color: color });
               refreshPreview();
             }}
-            className="w-full"
+            placeholder="Escolha uma cor"
+            size="lg"
           />
         </div>
       </motion.div>
