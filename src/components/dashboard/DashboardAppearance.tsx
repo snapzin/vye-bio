@@ -12,7 +12,7 @@ import { ColorPicker } from "@/components/ui/color-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
 import { motion } from "framer-motion";
-import { isYouTubeUrl, fetchYouTubeMetadata } from "@/lib/youtube";
+import { isYouTubeUrl, fetchYouTubeMetadata, extractYouTubeVideoId, getYouTubeThumbnail } from "@/lib/youtube";
 
 const avatarShapes = [
   { id: "square", label: "Square", icon: Square },
@@ -496,13 +496,19 @@ export function DashboardAppearance() {
                 </>
               ) : profile.background_type === 'video' ? (
                 <>
-                  <Upload className="w-7 h-7 text-muted-foreground group-hover:text-accent transition-colors" />
-                  <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors text-center px-3">
-                    Vídeo configurado
-                  </p>
-                  <p className="text-xs text-muted-foreground text-center px-3">
-                    Clique para trocar
-                  </p>
+                  <video
+                    src={profile.background_url}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    muted
+                    playsInline
+                    preload="metadata"
+                    onLoadedMetadata={(e) => {
+                      // Pause at first frame to show thumbnail
+                      const video = e.currentTarget;
+                      video.currentTime = 0.1;
+                      video.pause();
+                    }}
+                  />
                 </>
               ) : null}
               {uploading === 'background' && (
@@ -541,13 +547,48 @@ export function DashboardAppearance() {
               )}
               {profile.music_url ? (
                 <>
-                  <Music className="w-7 h-7 text-muted-foreground group-hover:text-accent transition-colors" />
-                  <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors text-center px-3">
-                    Música configurada
-                  </p>
-                  <p className="text-xs text-muted-foreground text-center px-3">
-                    Clique para trocar
-                  </p>
+                  {(() => {
+                    const isYouTube = isYouTubeUrl(profile.music_url);
+                    const youtubeVideoId = isYouTube ? extractYouTubeVideoId(profile.music_url)?.videoId : null;
+                    
+                    // Se for YouTube, mostrar thumbnail
+                    if (isYouTube && youtubeVideoId) {
+                      return (
+                        <img 
+                          src={getYouTubeThumbnail(youtubeVideoId, 'maxresdefault')}
+                          alt={profile.music_title || "Música"}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            if (target.src.includes('maxresdefault')) {
+                              target.src = getYouTubeThumbnail(youtubeVideoId, 'hqdefault');
+                            }
+                          }}
+                        />
+                      );
+                    }
+                    
+                    // Se tiver imagem customizada, mostrar ela
+                    if (profile.music_image_url) {
+                      return (
+                        <img 
+                          src={profile.music_image_url}
+                          alt={profile.music_title || "Música"}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      );
+                    }
+                    
+                    // Fallback para ícone
+                    return (
+                      <Music className="w-7 h-7 text-muted-foreground group-hover:text-accent transition-colors" />
+                    );
+                  })()}
+                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                    <p className="text-sm text-white/90 font-medium text-center px-3">
+                      {profile.music_title || "Música configurada"}
+                    </p>
+                  </div>
                 </>
               ) : (
                 <>
