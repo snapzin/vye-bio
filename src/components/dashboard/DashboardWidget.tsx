@@ -324,6 +324,26 @@ const DashboardWidget = () => {
             </p>
           </div>
 
+          <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <p className="text-sm text-foreground font-medium mb-2">
+              ⚠️ Importante: Servidor Lanyard
+            </p>
+            <p className="text-xs text-muted-foreground mb-3">
+              Para este widget funcionar corretamente, é <strong className="text-foreground">obrigatório</strong> estar no servidor Lanyard.
+            </p>
+            <a
+              href="https://discord.gg/4fFd55xeB3"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-xs font-medium text-amber-500 hover:text-amber-400 transition-colors"
+            >
+              <span>Entrar no servidor Lanyard</span>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          </div>
+
           <Button onClick={handleSave} className="mt-4">
             Salvar
           </Button>
