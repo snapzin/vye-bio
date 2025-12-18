@@ -246,12 +246,73 @@ function transformLanyardData(lanyardData: LanyardResponse): DiscordUser {
   };
 }
 
+// Create basic Discord user data when Lanyard doesn't have the user
+// We can at least show the avatar using Discord CDN (no auth needed)
+function createBasicDiscordUser(discordUserId: string): DiscordUser {
+  // Try to get avatar from CDN (works even without knowing the avatar hash)
+  // If avatar hash is unknown, use default avatar
+  const avatarUrl = getAvatarUrl(discordUserId, null);
+
+  return {
+    user: {
+      id: discordUserId,
+      username: 'Usuário Discord',
+      global_name: 'Usuário Discord',
+      avatar_url: avatarUrl,
+    },
+    status: 'offline',
+    connected_accounts: [],
+    badges: [],
+    presence: {
+      status: 'offline',
+      activities: [],
+    },
+  };
+}
+
+// Fetch basic Discord user data from Discord API (public, no auth needed)
+async function fetchDiscordUserBasic(discordUserId: string): Promise<DiscordUser | null> {
+  try {
+    const response = await fetch(`https://discord.com/api/v10/users/${discordUserId}`, {
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const discordUser = await response.json();
+
+    // Create basic DiscordUser object with minimal data
+    return {
+      user: {
+        id: discordUser.id,
+        username: discordUser.username || 'Usuário Discord',
+        global_name: discordUser.global_name || discordUser.display_name || discordUser.username || 'Usuário Discord',
+        avatar_url: getAvatarUrl(discordUser.id, discordUser.avatar),
+      },
+      status: 'offline',
+      connected_accounts: [],
+      badges: [],
+      presence: {
+        status: 'offline',
+        activities: [],
+      },
+    };
+  } catch (err) {
+    return null;
+  }
+}
+
 export const useDiscordData = (discordUserId: string | null) => {
   const [userData, setUserData] = useState<DiscordUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const has404Error = useRef(false); // Track if we got a 404 to stop polling
+  const useFallback = useRef(false); // Track if we're using Discord API fallback
 
   // Fetch data from Lanyard API
   useEffect(() => {
@@ -260,6 +321,7 @@ export const useDiscordData = (discordUserId: string | null) => {
       setUserData(null);
       setError(null);
       has404Error.current = false;
+      useFallback.current = false;
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -267,56 +329,74 @@ export const useDiscordData = (discordUserId: string | null) => {
       return;
     }
 
-    // Reset 404 flag when discordUserId changes
+    // Reset flags when discordUserId changes
     has404Error.current = false;
+    useFallback.current = false;
 
     const fetchDiscordData = async () => {
-      // Don't fetch if we already got a 404
-      if (has404Error.current) {
-        return;
-      }
-
       try {
         setIsLoading(true);
-        const response = await fetch(
-          `https://api.lanyard.rest/v1/users/${discordUserId}`
-        );
-        
-        if (!response.ok) {
-          // If 404, stop polling and set error silently
-          if (response.status === 404) {
-            has404Error.current = true;
-            setError(null); // Don't show error for 404
-            setUserData(null);
-            setIsLoading(false);
-            // Clear interval if it exists
-            if (intervalRef.current) {
-              clearInterval(intervalRef.current);
-              intervalRef.current = null;
-            }
-            return;
-          }
-          throw new Error(`Failed to fetch: ${response.status}`);
-        }
-        
-        const data: LanyardResponse = await response.json();
-        
-        if (!data.success || !data.data) {
-          throw new Error("Invalid response from Lanyard API");
-        }
 
-        const transformedData = transformLanyardData(data);
-        setUserData(transformedData);
-        setError(null);
-        has404Error.current = false; // Reset on success
-      } catch (err) {
-        // Only log non-404 errors
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        if (!errorMessage.includes('404')) {
-          setError("Erro ao carregar dados");
+        // Try Lanyard first (if not using fallback)
+        if (!useFallback.current) {
+          const response = await fetch(
+            `https://api.lanyard.rest/v1/users/${discordUserId}`
+          );
+          
+          if (!response.ok) {
+            // If 404, create basic user data (avatar from CDN)
+            if (response.status === 404) {
+              has404Error.current = true;
+              useFallback.current = true;
+              
+              // Create basic user data with avatar from Discord CDN
+              const fallbackData = createBasicDiscordUser(discordUserId);
+              setUserData(fallbackData);
+              setError(null);
+              // Don't poll when using fallback
+              if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+              }
+              setIsLoading(false);
+              return;
+            }
+            throw new Error(`Failed to fetch: ${response.status}`);
+          }
+          
+          const data: LanyardResponse = await response.json();
+          
+          if (!data.success || !data.data) {
+            throw new Error("Invalid response from Lanyard API");
+          }
+
+          const transformedData = transformLanyardData(data);
+          setUserData(transformedData);
+          setError(null);
+          has404Error.current = false;
+          useFallback.current = false;
+        } else {
+          // Using fallback - use basic data
+          const fallbackData = createBasicDiscordUser(discordUserId);
+          setUserData(fallbackData);
+          setError(null);
         }
-        setUserData(null);
-        // Don't set has404Error for other errors, allow retry
+      } catch (err) {
+        // If error and not using fallback yet, use basic fallback
+        if (!useFallback.current) {
+          const fallbackData = createBasicDiscordUser(discordUserId);
+          setUserData(fallbackData);
+          setError(null);
+          useFallback.current = true;
+          // Stop polling when using fallback
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+        } else {
+          setError("Erro ao carregar dados");
+          setUserData(null);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -325,18 +405,20 @@ export const useDiscordData = (discordUserId: string | null) => {
     // Initial fetch
     fetchDiscordData();
 
-    // Poll every 10 seconds for updates (only if no 404 error)
-    intervalRef.current = setInterval(() => {
-      if (!has404Error.current) {
-        fetchDiscordData();
-      } else {
-        // Clear interval if we got 404
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
+    // Poll every 10 seconds for updates (only if not using fallback)
+    if (!useFallback.current) {
+      intervalRef.current = setInterval(() => {
+        if (!has404Error.current && !useFallback.current) {
+          fetchDiscordData();
+        } else {
+          // Clear interval if we got 404 or using fallback
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
         }
-      }
-    }, 10000);
+      }, 10000);
+    }
 
     return () => {
       if (intervalRef.current) {
