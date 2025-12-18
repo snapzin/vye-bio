@@ -251,12 +251,15 @@ export const useDiscordData = (discordUserId: string | null) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const has404Error = useRef(false); // Track if we got a 404 to stop polling
 
   // Fetch data from Lanyard API
   useEffect(() => {
     if (!discordUserId) {
       setIsLoading(false);
       setUserData(null);
+      setError(null);
+      has404Error.current = false;
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -264,7 +267,15 @@ export const useDiscordData = (discordUserId: string | null) => {
       return;
     }
 
+    // Reset 404 flag when discordUserId changes
+    has404Error.current = false;
+
     const fetchDiscordData = async () => {
+      // Don't fetch if we already got a 404
+      if (has404Error.current) {
+        return;
+      }
+
       try {
         setIsLoading(true);
         const response = await fetch(
@@ -272,6 +283,19 @@ export const useDiscordData = (discordUserId: string | null) => {
         );
         
         if (!response.ok) {
+          // If 404, stop polling and set error silently
+          if (response.status === 404) {
+            has404Error.current = true;
+            setError(null); // Don't show error for 404
+            setUserData(null);
+            setIsLoading(false);
+            // Clear interval if it exists
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
+            }
+            return;
+          }
           throw new Error(`Failed to fetch: ${response.status}`);
         }
         
@@ -284,10 +308,15 @@ export const useDiscordData = (discordUserId: string | null) => {
         const transformedData = transformLanyardData(data);
         setUserData(transformedData);
         setError(null);
+        has404Error.current = false; // Reset on success
       } catch (err) {
-        setError("Erro ao carregar dados");
-        console.error("Lanyard API error:", err);
+        // Only log non-404 errors
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        if (!errorMessage.includes('404')) {
+          setError("Erro ao carregar dados");
+        }
         setUserData(null);
+        // Don't set has404Error for other errors, allow retry
       } finally {
         setIsLoading(false);
       }
@@ -296,8 +325,18 @@ export const useDiscordData = (discordUserId: string | null) => {
     // Initial fetch
     fetchDiscordData();
 
-    // Poll every 10 seconds for updates (since no websocket)
-    intervalRef.current = setInterval(fetchDiscordData, 10000);
+    // Poll every 10 seconds for updates (only if no 404 error)
+    intervalRef.current = setInterval(() => {
+      if (!has404Error.current) {
+        fetchDiscordData();
+      } else {
+        // Clear interval if we got 404
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      }
+    }, 10000);
 
     return () => {
       if (intervalRef.current) {
