@@ -247,7 +247,12 @@ export const useDiscordData = (discordUserId: string | null) => {
         setIsLoading(true);
 
         const response = await fetch(
-          `https://api.victims.bio/discord/user/${discordUserId}`
+          `https://api.victims.bio/discord/user/${discordUserId}`,
+          {
+            headers: {
+              'Accept': 'application/json',
+            },
+          }
         );
         
         if (!response.ok) {
@@ -269,13 +274,27 @@ export const useDiscordData = (discordUserId: string | null) => {
             setIsLoading(false);
             return false; // Don't start polling
           }
-          throw new Error(`Failed to fetch: ${response.status}`);
+          
+          // Try to get error message from response
+          let errorMessage = `Erro ${response.status}`;
+          try {
+            const errorData = await response.json();
+            if (errorData.message || errorData.error) {
+              errorMessage = errorData.message || errorData.error;
+            }
+          } catch {
+            // Ignore JSON parse errors
+          }
+          
+          throw new Error(errorMessage);
         }
         
         const data: VictimsResponse = await response.json();
         
-        if (!data || !data.id) {
-          throw new Error("Invalid response from Victims API");
+        // Validate response structure
+        if (!data || !data.id || !data.username) {
+          console.error('Invalid Victims API response:', data);
+          throw new Error("Resposta inválida da API Victims");
         }
 
         const transformedData = transformVictimsData(data);
@@ -286,6 +305,7 @@ export const useDiscordData = (discordUserId: string | null) => {
         setIsLoading(false);
         return true; // Success, can start polling
       } catch (err) {
+        console.error('Error fetching Discord data from Victims API:', err);
         // If error and not using fallback yet, use basic fallback immediately
         if (!useFallback.current) {
           useFallback.current = true;
@@ -304,8 +324,11 @@ export const useDiscordData = (discordUserId: string | null) => {
           setIsLoading(false);
           return false; // Don't start polling
         } else {
-          setError("Erro ao carregar dados");
-          setUserData(null);
+          const errorMessage = err instanceof Error ? err.message : "Erro ao carregar dados do Discord";
+          setError(errorMessage);
+          // Still show fallback data even on error
+          const fallbackData = createBasicDiscordUser(discordUserId);
+          setUserData(fallbackData);
           setIsLoading(false);
           return false;
         }
