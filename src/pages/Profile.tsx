@@ -6,7 +6,9 @@ import {
   Play,
   Pause,
   Music,
-  X
+  X,
+  Volume2,
+  VolumeX
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useProfile, useUserLinks, useUserBadges, useUserWidgets, type Badge, type Profile } from "@/hooks/useProfile";
@@ -18,6 +20,7 @@ import { getSocialIcon } from "@/lib/socialIcons";
 import { BadgeIcon } from "@/lib/badgeIcons";
 import { isYouTubeUrl, extractYouTubeVideoId, getYouTubeThumbnail } from "@/lib/youtube";
 import { useYouTubePlayer } from "@/hooks/useYouTubePlayer";
+import { Slider } from "@/components/ui/slider";
 
 const rarityColors: Record<string, string> = {
   common: "bg-secondary",
@@ -243,6 +246,11 @@ const Profile = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const userPausedRef = useRef(false);
+  
+  // Background video controls
+  const backgroundVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [videoVolume, setVideoVolume] = useState(50);
+  const [isVideoMuted, setIsVideoMuted] = useState(false);
 
   // Check if music_url is YouTube
   const isYouTube = profile?.music_url ? isYouTubeUrl(profile.music_url) : false;
@@ -426,6 +434,18 @@ const Profile = () => {
     }
   }, [profile?.music_url, isYouTube, shouldUseFloatingPlayer]);
 
+  // Control background video playback and volume
+  useEffect(() => {
+    if (backgroundVideoRef.current && profile?.background_type === 'video') {
+      const video = backgroundVideoRef.current;
+      video.volume = videoVolume / 100;
+      video.muted = isVideoMuted;
+      video.play().catch(() => {
+        // Autoplay may be blocked, that's okay
+      });
+    }
+  }, [profile?.background_type, profile?.background_url, videoVolume, isVideoMuted]);
+
   // Handle play/pause - only for floating player
   const togglePlay = () => {
     if (!shouldUseFloatingPlayer) return; // MusicCard handles it otherwise
@@ -536,12 +556,65 @@ const Profile = () => {
         backgroundPosition: 'center',
       }}
     >
-      {/* Overlay for readability */}
-      {profile.background_type === 'image' && (
-        <div className="absolute inset-0 bg-background/70" />
+      {/* Background video when background_type is 'video' */}
+      {profile.background_type === 'video' && profile.background_url && (
+        <>
+          <video
+            ref={backgroundVideoRef}
+            src={profile.background_url}
+            loop
+            muted={isVideoMuted}
+            playsInline
+            autoPlay
+            className="absolute inset-0 w-full h-full object-cover z-0"
+            style={{ opacity: 0.9 }}
+          />
+          {/* Audio controller in top-left corner */}
+          <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-background/90 backdrop-blur-sm rounded-lg p-2 border border-border/50 shadow-lg">
+            <button
+              type="button"
+              onClick={() => {
+                setIsVideoMuted(!isVideoMuted);
+                if (backgroundVideoRef.current) {
+                  backgroundVideoRef.current.muted = !isVideoMuted;
+                }
+              }}
+              className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-secondary transition-colors"
+              aria-label={isVideoMuted ? "Ativar áudio" : "Desativar áudio"}
+              title={isVideoMuted ? "Ativar áudio" : "Desativar áudio"}
+            >
+              {isVideoMuted ? (
+                <VolumeX className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <Volume2 className="w-4 h-4 text-foreground" />
+              )}
+            </button>
+            <div className="w-24">
+              <Slider
+                value={[videoVolume]}
+                onValueChange={(value) => {
+                  const vol = value[0];
+                  setVideoVolume(vol);
+                  if (backgroundVideoRef.current) {
+                    backgroundVideoRef.current.volume = vol / 100;
+                  }
+                }}
+                min={0}
+                max={100}
+                step={1}
+                className="w-full"
+              />
+            </div>
+          </div>
+        </>
       )}
 
-      {/* Background gradient glow - only show when no background image */}
+      {/* Overlay for readability */}
+      {profile.background_type === 'image' && (
+        <div className="absolute inset-0 bg-background/70 z-0" />
+      )}
+
+      {/* Background gradient glow - only show when no background image or video */}
       {!profile.background_url && (
         <div className="absolute inset-0 z-0">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-glow/5 rounded-full blur-[150px]" />
