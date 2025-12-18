@@ -324,20 +324,20 @@ const DashboardWidget = () => {
             </p>
           </div>
 
-          <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+          <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
             <p className="text-sm text-foreground font-medium mb-2">
-              ℹ️ Informação: API Victims
+              ⚠️ Importante: Servidor Lanyard
             </p>
             <p className="text-xs text-muted-foreground mb-3">
-              Este widget utiliza a API <strong className="text-foreground">Victims</strong> para buscar informações do Discord. A API funciona para qualquer usuário do Discord.
+              Para este widget funcionar corretamente, é <strong className="text-foreground">obrigatório</strong> estar no servidor Lanyard.
             </p>
             <a
-              href="https://api.victims.bio"
+              href="https://discord.gg/4fFd55xeB3"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-xs font-medium text-blue-500 hover:text-blue-400 transition-colors"
+              className="inline-flex items-center gap-2 text-xs font-medium text-amber-500 hover:text-amber-400 transition-colors"
             >
-              <span>Documentação da API Victims</span>
+              <span>Entrar no servidor Lanyard</span>
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
