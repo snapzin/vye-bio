@@ -1,60 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 
-// Types based on Lanyard API response
-interface LanyardResponse {
-  success: boolean;
-  data: {
-    kv: Record<string, any>;
-    discord_user: {
-      id: string;
-      username: string;
-      global_name: string | null;
-      display_name: string | null;
-      discriminator: string;
-      bot: boolean;
-      avatar: string | null;
-      avatar_decoration_data: any;
-      collectibles: any;
-      display_name_styles: any;
-      public_flags: number;
-      primary_guild: {
-        identity_guild_id: string | null;
-        identity_enabled: boolean;
-        tag: string | null;
-        badge: string | null;
-      };
-    };
-    activities: Array<{
-      id: string;
-      name: string;
-      type: number;
-      platform: string | null;
-      application_id: string | null;
-      created_at: number;
-      session_id: string | null;
-      details: string | null;
-      state: string | null;
-      flags: number;
-      timestamps: {
-        start: number | null;
-        end: number | null;
-      } | null;
-      assets: {
-        large_image: string | null;
-        large_text: string | null;
-        small_image: string | null;
-        small_text: string | null;
-      } | null;
-      buttons: string[] | null;
-    }>;
-    discord_status: "online" | "idle" | "dnd" | "offline";
-    active_on_discord_web: boolean;
-    active_on_discord_desktop: boolean;
-    active_on_discord_mobile: boolean;
-    active_on_discord_embedded: boolean;
-    listening_to_spotify: boolean;
-    spotify: any;
-  };
+// Types based on Victims API response
+interface VictimsResponse {
+  id: string;
+  username: string;
+  discriminator: string;
+  avatar: string | null;
+  banner: string | null;
+  bio: string | null;
 }
 
 export interface DiscordUser {
@@ -201,62 +154,49 @@ function processAssetImage(imageKey: string | null, applicationId: string | null
   return `https://cdn.discordapp.com/app-assets/${imageKey}.png`;
 }
 
-function transformLanyardData(lanyardData: LanyardResponse): DiscordUser {
-  const { discord_user, activities, discord_status } = lanyardData.data;
-
-  const transformedActivities = activities.map((activity) => ({
-    name: activity.name,
-    type: activity.type,
-    url: null,
-    created_at: formatTimestamp(activity.created_at),
-    duration: getDuration(
-      activity.timestamps?.start || null,
-      activity.timestamps?.end || null
-    ),
-    start_time: activity.timestamps?.start || null,
-    end_time: activity.timestamps?.end || null,
-    application_id: activity.application_id,
-    details: activity.details,
-    state: activity.state,
-    assets: activity.assets
-      ? {
-          large_text: activity.assets.large_text,
-          large_image: processAssetImage(activity.assets.large_image, activity.application_id),
-          small_text: activity.assets.small_text,
-          small_image: processAssetImage(activity.assets.small_image, activity.application_id),
-        }
-      : null,
-    buttons: activity.buttons,
-  }));
+function transformVictimsData(victimsData: VictimsResponse): DiscordUser {
+  // If avatar is already a full URL, use it directly
+  // Otherwise, extract hash from URL or use the hash directly
+  let avatarUrl: string;
+  if (victimsData.avatar) {
+    if (victimsData.avatar.startsWith('http')) {
+      // Already a full URL, use it directly
+      avatarUrl = victimsData.avatar;
+    } else {
+      // It's a hash, use getAvatarUrl
+      avatarUrl = getAvatarUrl(victimsData.id, victimsData.avatar);
+    }
+  } else {
+    // No avatar, use default
+    avatarUrl = getAvatarUrl(victimsData.id, null);
+  }
 
   return {
     user: {
-      id: discord_user.id,
-      username: discord_user.username,
-      global_name: discord_user.global_name || discord_user.display_name || discord_user.username,
-      avatar_url: getAvatarUrl(discord_user.id, discord_user.avatar),
+      id: victimsData.id,
+      username: victimsData.username,
+      global_name: victimsData.username,
+      avatar_url: avatarUrl,
     },
-    status: discord_status,
+    status: 'offline',
     connected_accounts: [],
     badges: [],
     presence: {
-      status: discord_status,
-      activities: transformedActivities,
+      status: 'offline',
+      activities: [],
     },
   };
 }
 
-// Create basic Discord user data when Lanyard doesn't have the user
-// We can at least show the avatar using Discord CDN (no auth needed)
+// Create basic Discord user data when Victims API doesn't have the user
 function createBasicDiscordUser(discordUserId: string): DiscordUser {
-  // Try to get avatar from CDN (works even without knowing the avatar hash)
-  // If avatar hash is unknown, use default avatar
+  // Use default avatar from Discord CDN
   const avatarUrl = getAvatarUrl(discordUserId, null);
 
   return {
     user: {
       id: discordUserId,
-      username: 'Usuário Discord',
+      username: `ID: ${discordUserId.slice(0, 8)}...`,
       global_name: 'Usuário Discord',
       avatar_url: avatarUrl,
     },
@@ -278,7 +218,7 @@ export const useDiscordData = (discordUserId: string | null) => {
   const has404Error = useRef(false); // Track if we got a 404 to stop polling
   const useFallback = useRef(false); // Track if we're using Discord API fallback
 
-  // Fetch data from Lanyard API
+  // Fetch data from Victims API
   useEffect(() => {
     if (!discordUserId) {
       setIsLoading(false);
@@ -307,7 +247,7 @@ export const useDiscordData = (discordUserId: string | null) => {
         setIsLoading(true);
 
         const response = await fetch(
-          `https://api.lanyard.rest/v1/users/${discordUserId}`
+          `https://api.victims.bio/discord/user/${discordUserId}`
         );
         
         if (!response.ok) {
@@ -332,13 +272,13 @@ export const useDiscordData = (discordUserId: string | null) => {
           throw new Error(`Failed to fetch: ${response.status}`);
         }
         
-        const data: LanyardResponse = await response.json();
+        const data: VictimsResponse = await response.json();
         
-        if (!data.success || !data.data) {
-          throw new Error("Invalid response from Lanyard API");
+        if (!data || !data.id) {
+          throw new Error("Invalid response from Victims API");
         }
 
-        const transformedData = transformLanyardData(data);
+        const transformedData = transformVictimsData(data);
         setUserData(transformedData);
         setError(null);
         has404Error.current = false;

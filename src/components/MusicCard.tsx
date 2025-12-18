@@ -176,12 +176,12 @@ const MusicCard = ({ profile }: MusicCardProps) => {
     } else if (!audioRef.current || duration === 0) {
       return;
     } else {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const percent = x / rect.width;
-      const newTime = percent * duration;
-      audioRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percent = x / rect.width;
+    const newTime = percent * duration;
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
     }
   };
 
@@ -237,20 +237,20 @@ const MusicCard = ({ profile }: MusicCardProps) => {
             // Se tiver imagem customizada, usar ela
             if (profile.music_image_url) {
               return (
-                <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden relative">
-                  <img 
-                    src={profile.music_image_url} 
-                    alt={profile.music_title || "Música"}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+            <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden relative">
+              <img 
+                src={profile.music_image_url} 
+                alt={profile.music_title || "Música"}
+                className="w-full h-full object-cover"
+              />
+            </div>
               );
             }
             // Fallback para ícone padrão
             return (
-              <div className="w-20 h-20 flex-shrink-0 rounded-lg bg-gradient-to-br from-accent/20 to-purple-500/20 flex items-center justify-center">
-                <Music className="w-8 h-8 text-muted-foreground/50" />
-              </div>
+            <div className="w-20 h-20 flex-shrink-0 rounded-lg bg-gradient-to-br from-accent/20 to-purple-500/20 flex items-center justify-center">
+              <Music className="w-8 h-8 text-muted-foreground/50" />
+            </div>
             );
           })()}
           
@@ -279,9 +279,9 @@ const MusicCard = ({ profile }: MusicCardProps) => {
                     {profile.music_artist || "Artista desconhecido"}
                   </a>
                 ) : (
-                  <p className="text-xs text-muted-foreground truncate">
-                    {profile.music_artist || "Artista desconhecido"}
-                  </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {profile.music_artist || "Artista desconhecido"}
+                </p>
                 )}
               </div>
             </div>

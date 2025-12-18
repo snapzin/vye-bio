@@ -100,9 +100,9 @@ export function DashboardPreview() {
         audioRef.current = null;
       }
       if (!isYouTube) {
-        setIsPlaying(false);
-        setCurrentTime(0);
-        setDuration(0);
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
       }
       return;
     }

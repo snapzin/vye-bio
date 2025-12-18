@@ -84,11 +84,11 @@ function FloatingMusicPlayer({
           // Se tiver imagem customizada, usar ela
           if (profile.music_image_url) {
             return (
-              <img 
-                src={profile.music_image_url} 
-                alt={profile.music_title || "Música"}
-                className="w-full h-full rounded-full object-cover"
-              />
+          <img 
+            src={profile.music_image_url} 
+            alt={profile.music_title || "Música"}
+            className="w-full h-full rounded-full object-cover"
+          />
             );
           }
           // Fallback para ícone padrão
@@ -150,20 +150,20 @@ function FloatingMusicPlayer({
                   // Se tiver imagem customizada, usar ela
                   if (profile.music_image_url) {
                     return (
-                      <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
-                        <img 
-                          src={profile.music_image_url} 
-                          alt={profile.music_title || "Música"}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+                  <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
+                    <img 
+                      src={profile.music_image_url} 
+                      alt={profile.music_title || "Música"}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                     );
                   }
                   // Fallback para ícone padrão
                   return (
-                    <div className="w-16 h-16 flex-shrink-0 rounded-lg bg-gradient-to-br from-accent/20 to-purple-500/20 flex items-center justify-center">
-                      <Music className="w-8 h-8 text-muted-foreground/50" />
-                    </div>
+                  <div className="w-16 h-16 flex-shrink-0 rounded-lg bg-gradient-to-br from-accent/20 to-purple-500/20 flex items-center justify-center">
+                    <Music className="w-8 h-8 text-muted-foreground/50" />
+                  </div>
                   );
                 })()}
                 <div className="flex-1 min-w-0">
@@ -181,9 +181,9 @@ function FloatingMusicPlayer({
                       {profile.music_artist || "Artista desconhecido"}
                     </a>
                   ) : (
-                    <p className="text-xs text-muted-foreground truncate">
-                      {profile.music_artist || "Artista desconhecido"}
-                    </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {profile.music_artist || "Artista desconhecido"}
+                  </p>
                   )}
                 </div>
               </div>
@@ -485,11 +485,11 @@ const Profile = () => {
           // Wait for audio to be ready
           audio.addEventListener('canplay', () => {
             if (!userPausedRef.current) {
-              audio.play().catch((error) => {
-                console.error('Error playing audio:', error);
+        audio.play().catch((error) => {
+          console.error('Error playing audio:', error);
                 setIsPlaying(false);
                 userPausedRef.current = true;
-              });
+        });
             }
           }, { once: true });
         }
