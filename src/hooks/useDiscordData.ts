@@ -270,75 +270,6 @@ function createBasicDiscordUser(discordUserId: string): DiscordUser {
   };
 }
 
-// Fetch basic Discord user data using Discord Lookup API (public, no auth needed)
-async function fetchDiscordUserBasic(discordUserId: string): Promise<DiscordUser | null> {
-  try {
-    // Try Discord Lookup API first (public, no auth)
-    // This API provides basic user info without authentication
-    const lookupResponse = await fetch(`https://discordlookup.mesavirep.xyz/v1/user/${discordUserId}`, {
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-
-    if (lookupResponse.ok) {
-      const lookupData = await lookupResponse.json();
-      
-      return {
-        user: {
-          id: lookupData.id || discordUserId,
-          username: lookupData.username || `Usuário ${discordUserId.slice(0, 4)}`,
-          global_name: lookupData.global_name || lookupData.display_name || lookupData.username || `Usuário ${discordUserId.slice(0, 4)}`,
-          avatar_url: getAvatarUrl(lookupData.id || discordUserId, lookupData.avatar),
-        },
-        status: 'offline',
-        connected_accounts: [],
-        badges: [],
-        presence: {
-          status: 'offline',
-          activities: [],
-        },
-      };
-    }
-
-    // Fallback: Try alternative Discord Lookup API
-    try {
-      const altResponse = await fetch(`https://api.discord.bio/v1/users/${discordUserId}`, {
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
-
-      if (altResponse.ok) {
-        const altData = await altResponse.json();
-        if (altData.user) {
-          return {
-            user: {
-              id: altData.user.id || discordUserId,
-              username: altData.user.username || `Usuário ${discordUserId.slice(0, 4)}`,
-              global_name: altData.user.global_name || altData.user.display_name || altData.user.username || `Usuário ${discordUserId.slice(0, 4)}`,
-              avatar_url: getAvatarUrl(altData.user.id || discordUserId, altData.user.avatar),
-            },
-            status: 'offline',
-            connected_accounts: [],
-            badges: [],
-            presence: {
-              status: 'offline',
-              activities: [],
-            },
-          };
-        }
-      }
-    } catch (altErr) {
-      // Ignore alternative API errors
-    }
-
-    return null;
-  } catch (err) {
-    return null;
-  }
-}
-
 export const useDiscordData = (discordUserId: string | null) => {
   const [userData, setUserData] = useState<DiscordUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -380,7 +311,7 @@ export const useDiscordData = (discordUserId: string | null) => {
         );
         
         if (!response.ok) {
-          // If 404, try to fetch from Discord API directly
+          // If 404, immediately use fallback (no more API calls)
           if (response.status === 404) {
             has404Error.current = true;
             useFallback.current = true;
@@ -391,16 +322,7 @@ export const useDiscordData = (discordUserId: string | null) => {
               intervalRef.current = null;
             }
             
-            // Try to fetch real Discord user data
-            const discordData = await fetchDiscordUserBasic(discordUserId);
-            if (discordData) {
-              setUserData(discordData);
-              setError(null);
-              setIsLoading(false);
-              return false; // Don't start polling
-            }
-            
-            // If Discord API also fails, use basic fallback
+            // Use basic fallback immediately (no more API calls)
             const fallbackData = createBasicDiscordUser(discordUserId);
             setUserData(fallbackData);
             setError(null);
@@ -424,7 +346,7 @@ export const useDiscordData = (discordUserId: string | null) => {
         setIsLoading(false);
         return true; // Success, can start polling
       } catch (err) {
-        // If error and not using fallback yet, try Discord API first
+        // If error and not using fallback yet, use basic fallback immediately
         if (!useFallback.current) {
           useFallback.current = true;
           has404Error.current = true;
@@ -435,16 +357,7 @@ export const useDiscordData = (discordUserId: string | null) => {
             intervalRef.current = null;
           }
           
-          // Try to fetch real Discord user data
-          const discordData = await fetchDiscordUserBasic(discordUserId);
-          if (discordData) {
-            setUserData(discordData);
-            setError(null);
-            setIsLoading(false);
-            return false; // Don't start polling
-          }
-          
-          // If Discord API also fails, use basic fallback
+          // Use basic fallback immediately (no more API calls)
           const fallbackData = createBasicDiscordUser(discordUserId);
           setUserData(fallbackData);
           setError(null);
