@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Camera, Loader2, Save, Upload, Image, User, Square, Circle, Palette, X, Layout, AlignLeft, AlignCenter, FileText, Trash2, Music, Link as LinkIcon } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
