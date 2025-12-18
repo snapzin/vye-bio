@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Camera, Loader2, Save, Upload, Image, User, Square, Circle, Palette, X, Layout, AlignLeft, AlignCenter, FileText, Trash2, Music, Link as LinkIcon } from "lucide-react";
+import { Camera, Loader2, Save, Upload, Image, User, Square, Circle, Palette, X, Layout, AlignLeft, AlignCenter, FileText, Trash2, Music, Link as LinkIcon, MapPin, Type } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { ColorInput } from "@/components/ui/color-input";
@@ -702,38 +702,51 @@ export function DashboardAppearance() {
           <h3 className="font-semibold text-lg text-foreground">Profile Info</h3>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
-            <label className="text-sm text-muted-foreground mb-1.5 block">Nome de Exibição</label>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Nome de Exibição */}
+          <div className="p-4 rounded-xl bg-card border border-border/50 hover:border-accent/50 transition-colors">
+            <div className="flex items-center gap-2 mb-3">
+              <Type className="w-4 h-4 text-muted-foreground" />
+              <label className="text-sm font-medium text-foreground">Nome de Exibição</label>
+            </div>
             <Input
               name="display_name"
               value={formData.display_name}
               onChange={handleInputChange}
               placeholder="Seu nome"
-              className="bg-secondary/50"
+              className="bg-secondary/50 border-0 focus:ring-1 focus:ring-accent/50"
             />
           </div>
-          <div>
-            <label className="text-sm text-muted-foreground mb-1.5 block">Location</label>
+
+          {/* Localização */}
+          <div className="p-4 rounded-xl bg-card border border-border/50 hover:border-accent/50 transition-colors">
+            <div className="flex items-center gap-2 mb-3">
+              <MapPin className="w-4 h-4 text-muted-foreground" />
+              <label className="text-sm font-medium text-foreground">Localização</label>
+            </div>
             <Input
               name="location"
               value={formData.location}
               onChange={handleInputChange}
               placeholder="Cidade, País"
-              className="bg-secondary/50"
+              className="bg-secondary/50 border-0 focus:ring-1 focus:ring-accent/50"
             />
           </div>
-        </div>
 
-        <div className="mt-4">
-          <label className="text-sm text-muted-foreground mb-1.5 block">Bio</label>
-          <Textarea
-            name="bio"
-            value={formData.bio}
-            onChange={handleInputChange}
-            placeholder="Conte aos outros sobre você..."
-            className="min-h-[100px] bg-secondary/50 resize-none"
-          />
+          {/* Bio */}
+          <div className="p-4 rounded-xl bg-card border border-border/50 hover:border-accent/50 transition-colors md:col-span-2 lg:col-span-1">
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="w-4 h-4 text-muted-foreground" />
+              <label className="text-sm font-medium text-foreground">Bio</label>
+            </div>
+            <Textarea
+              name="bio"
+              value={formData.bio}
+              onChange={handleInputChange}
+              placeholder="Conte aos outros sobre você..."
+              className="min-h-[100px] bg-secondary/50 resize-none border-0 focus:ring-1 focus:ring-accent/50"
+            />
+          </div>
         </div>
       </motion.div>
 
