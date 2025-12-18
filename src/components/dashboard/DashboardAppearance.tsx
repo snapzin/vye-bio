@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Camera, Loader2, Save, Upload, Image, User, Square, Circle, Palette, X, Layout, AlignLeft, AlignCenter, FileText, Trash2, Music, Link as LinkIcon, Volume2, VolumeX } from "lucide-react";
-import { Slider } from "@/components/ui/slider";
+import { Camera, Loader2, Save, Upload, Image, User, Square, Circle, Palette, X, Layout, AlignLeft, AlignCenter, FileText, Trash2, Music, Link as LinkIcon } from "lucide-react";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
@@ -30,9 +29,6 @@ export function DashboardAppearance() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
   const musicInputRef = useRef<HTMLInputElement>(null);
-  const backgroundVideoRef = useRef<HTMLVideoElement | null>(null);
-  const [videoVolume, setVideoVolume] = useState(50);
-  const [isVideoMuted, setIsVideoMuted] = useState(false);
 
   const [formData, setFormData] = useState({
     display_name: profile?.display_name || "",
@@ -109,18 +105,6 @@ export function DashboardAppearance() {
       });
     }
   }, [profile?.background_url, profile?.background_type, profile?.banner_url, profile?.music_url, profile?.music_title, profile?.music_artist, profile?.music_image_url, setPreviewData]);
-
-  // Control video playback and volume
-  useEffect(() => {
-    if (backgroundVideoRef.current && profile?.background_type === 'video') {
-      const video = backgroundVideoRef.current;
-      video.volume = videoVolume / 100;
-      video.muted = isVideoMuted;
-      video.play().catch(() => {
-        // Autoplay may be blocked, that's okay
-      });
-    }
-  }, [profile?.background_type, profile?.background_url, videoVolume, isVideoMuted]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({
@@ -490,60 +474,6 @@ export function DashboardAppearance() {
                 backgroundPosition: 'center',
               }}
             >
-              {/* Video player when background_type is 'video' */}
-              {profile.background_type === 'video' && profile.background_url && (
-                <>
-                  <video
-                    ref={backgroundVideoRef}
-                    src={profile.background_url}
-                    loop
-                    muted={isVideoMuted}
-                    playsInline
-                    autoPlay
-                    className="absolute inset-0 w-full h-full object-cover"
-                    style={{ opacity: 0.8 }}
-                  />
-                  {/* Audio controller in top-left corner */}
-                  <div className="absolute top-2 left-2 z-20 flex items-center gap-2 bg-background/90 backdrop-blur-sm rounded-lg p-2 border border-border/50">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsVideoMuted(!isVideoMuted);
-                        if (backgroundVideoRef.current) {
-                          backgroundVideoRef.current.muted = !isVideoMuted;
-                        }
-                      }}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-secondary transition-colors"
-                      aria-label={isVideoMuted ? "Ativar áudio" : "Desativar áudio"}
-                      title={isVideoMuted ? "Ativar áudio" : "Desativar áudio"}
-                    >
-                      {isVideoMuted ? (
-                        <VolumeX className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <Volume2 className="w-4 h-4 text-foreground" />
-                      )}
-                    </button>
-                    <div className="w-24">
-                      <Slider
-                        value={[videoVolume]}
-                        onValueChange={(value) => {
-                          const vol = value[0];
-                          setVideoVolume(vol);
-                          if (backgroundVideoRef.current) {
-                            backgroundVideoRef.current.volume = vol / 100;
-                          }
-                        }}
-                        min={0}
-                        max={100}
-                        step={1}
-                        className="w-full"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
               {profile.background_url && (
                 <button
                   type="button"
@@ -555,7 +485,7 @@ export function DashboardAppearance() {
                   <Trash2 className="w-4 h-4" />
                 </button>
               )}
-              {!profile.background_url && (
+              {!profile.background_url ? (
                 <>
                   <Upload className="w-6 h-6 text-muted-foreground group-hover:text-accent transition-colors" />
                   <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
@@ -563,7 +493,17 @@ export function DashboardAppearance() {
                   </p>
                   <p className="text-xs text-muted-foreground">.jpeg, .png, .gif, .webp, .jpg, .mp4</p>
                 </>
-              )}
+              ) : profile.background_type === 'video' ? (
+                <>
+                  <Upload className="w-7 h-7 text-muted-foreground group-hover:text-accent transition-colors" />
+                  <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors text-center px-3">
+                    Vídeo configurado
+                  </p>
+                  <p className="text-xs text-muted-foreground text-center px-3">
+                    Clique para trocar
+                  </p>
+                </>
+              ) : null}
               {uploading === 'background' && (
                 <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-xl">
                   <Loader2 className="w-6 h-6 animate-spin text-accent" />
