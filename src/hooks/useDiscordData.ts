@@ -174,52 +174,72 @@ function processAssetImage(imageKey: string | null, applicationId: string | null
   return `https://cdn.discordapp.com/app-assets/${imageKey}.png`;
 }
 
-function transformLanyardData(lanyardData: LanyardResponse): DiscordUser {
-  const { discord_user, activities, discord_status } = lanyardData.data;
+function transformVictimsData(victimsData: VictimsResponse): DiscordUser {
+  // Check if it's the complex format (with user object)
+  if ('user' in victimsData && victimsData.user) {
+    const user = victimsData.user;
+    let avatarUrl: string;
+    
+    if (user.avatar_url) {
+      // Already a full URL
+      avatarUrl = user.avatar_url;
+    } else if (user.avatar) {
+      if (user.avatar.startsWith('http')) {
+        avatarUrl = user.avatar;
+      } else {
+        avatarUrl = getAvatarUrl(user.id, user.avatar);
+      }
+    } else {
+      avatarUrl = getAvatarUrl(user.id, null);
+    }
 
-  const transformedActivities = activities.map((activity) => ({
-    name: activity.name,
-    type: activity.type,
-    url: null,
-    created_at: formatTimestamp(activity.created_at),
-    duration: getDuration(
-      activity.timestamps?.start || null,
-      activity.timestamps?.end || null
-    ),
-    start_time: activity.timestamps?.start || null,
-    end_time: activity.timestamps?.end || null,
-    application_id: activity.application_id,
-    details: activity.details,
-    state: activity.state,
-    assets: activity.assets
-      ? {
-          large_text: activity.assets.large_text,
-          large_image: processAssetImage(activity.assets.large_image, activity.application_id),
-          small_text: activity.assets.small_text,
-          small_image: processAssetImage(activity.assets.small_image, activity.application_id),
-        }
-      : null,
-    buttons: activity.buttons,
-  }));
+    return {
+      user: {
+        id: user.id,
+        username: user.username,
+        global_name: user.global_name || user.display_name || user.username,
+        avatar_url: avatarUrl,
+      },
+      status: 'offline',
+      connected_accounts: victimsData.connected_accounts || [],
+      badges: victimsData.badges || [],
+      presence: {
+        status: 'offline',
+        activities: [],
+      },
+    };
+  }
+  
+  // Simple format (direct fields)
+  let avatarUrl: string;
+  if (victimsData.avatar) {
+    if (victimsData.avatar.startsWith('http')) {
+      avatarUrl = victimsData.avatar;
+    } else {
+      avatarUrl = getAvatarUrl(victimsData.id, victimsData.avatar);
+    }
+  } else {
+    avatarUrl = getAvatarUrl(victimsData.id, null);
+  }
 
   return {
     user: {
-      id: discord_user.id,
-      username: discord_user.username,
-      global_name: discord_user.global_name || discord_user.display_name || discord_user.username,
-      avatar_url: getAvatarUrl(discord_user.id, discord_user.avatar),
+      id: victimsData.id,
+      username: victimsData.username,
+      global_name: victimsData.username,
+      avatar_url: avatarUrl,
     },
-    status: discord_status,
+    status: 'offline',
     connected_accounts: [],
     badges: [],
     presence: {
-      status: discord_status,
-      activities: transformedActivities,
+      status: 'offline',
+      activities: [],
     },
   };
 }
 
-// Create basic Discord user data when Lanyard doesn't have the user
+// Create basic Discord user data when Victims API doesn't have the user
 function createBasicDiscordUser(discordUserId: string): DiscordUser {
   // Use default avatar from Discord CDN
   const avatarUrl = getAvatarUrl(discordUserId, null);
@@ -249,7 +269,7 @@ export const useDiscordData = (discordUserId: string | null) => {
   const has404Error = useRef(false); // Track if we got a 404 to stop polling
   const useFallback = useRef(false); // Track if we're using Discord API fallback
 
-  // Fetch data from Lanyard API
+  // Fetch data from Victims API via proxy
   useEffect(() => {
     if (!discordUserId) {
       setIsLoading(false);
@@ -277,8 +297,14 @@ export const useDiscordData = (discordUserId: string | null) => {
       try {
         setIsLoading(true);
 
+        // Usar proxy do backend para evitar problemas de CORS
         const response = await fetch(
-          `https://api.lanyard.rest/v1/users/${discordUserId}`
+          `/api/discord?userId=${encodeURIComponent(discordUserId)}`,
+          {
+            headers: {
+              'Accept': 'application/json',
+            },
+          }
         );
         
         if (!response.ok) {
@@ -315,13 +341,22 @@ export const useDiscordData = (discordUserId: string | null) => {
           throw new Error(errorMessage);
         }
         
-        const data: LanyardResponse = await response.json();
+        const data: VictimsResponse = await response.json();
         
-        if (!data.success || !data.data) {
-          throw new Error("Invalid response from Lanyard API");
+        // Validate response structure - check both formats
+        const isValid = data && (
+          // Simple format
+          (data.id && 'username' in data && data.username) ||
+          // Complex format
+          (data.id && 'user' in data && data.user && data.user.id && data.user.username)
+        );
+        
+        if (!isValid) {
+          console.error('Invalid Victims API response:', data);
+          throw new Error("Resposta inválida da API Victims");
         }
 
-        const transformedData = transformLanyardData(data);
+        const transformedData = transformVictimsData(data);
         setUserData(transformedData);
         setError(null);
         has404Error.current = false;
@@ -329,7 +364,7 @@ export const useDiscordData = (discordUserId: string | null) => {
         setIsLoading(false);
         return true; // Success, can start polling
       } catch (err) {
-        console.error('Error fetching Discord data from Lanyard API:', err);
+        console.error('Error fetching Discord data from Victims API:', err);
         // If error and not using fallback yet, use basic fallback immediately
         if (!useFallback.current) {
           useFallback.current = true;
