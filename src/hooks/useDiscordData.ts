@@ -333,92 +333,97 @@ export const useDiscordData = (discordUserId: string | null) => {
     has404Error.current = false;
     useFallback.current = false;
 
-    const fetchDiscordData = async () => {
+    const fetchDiscordData = async (): Promise<boolean> => {
+      // Don't fetch if we're already using fallback
+      if (useFallback.current) {
+        return false;
+      }
+
       try {
         setIsLoading(true);
 
-        // Try Lanyard first (if not using fallback)
-        if (!useFallback.current) {
-          const response = await fetch(
-            `https://api.lanyard.rest/v1/users/${discordUserId}`
-          );
-          
-          if (!response.ok) {
-            // If 404, create basic user data (avatar from CDN)
-            if (response.status === 404) {
-              has404Error.current = true;
-              useFallback.current = true;
-              
-              // Create basic user data with avatar from Discord CDN
-              const fallbackData = createBasicDiscordUser(discordUserId);
-              setUserData(fallbackData);
-              setError(null);
-              // Don't poll when using fallback
-              if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-              }
-              setIsLoading(false);
-              return;
+        const response = await fetch(
+          `https://api.lanyard.rest/v1/users/${discordUserId}`
+        );
+        
+        if (!response.ok) {
+          // If 404, immediately use fallback and stop polling
+          if (response.status === 404) {
+            has404Error.current = true;
+            useFallback.current = true;
+            
+            // Clear interval immediately
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
             }
-            throw new Error(`Failed to fetch: ${response.status}`);
+            
+            // Create basic user data with avatar from Discord CDN
+            const fallbackData = createBasicDiscordUser(discordUserId);
+            setUserData(fallbackData);
+            setError(null);
+            setIsLoading(false);
+            return false; // Don't start polling
           }
-          
-          const data: LanyardResponse = await response.json();
-          
-          if (!data.success || !data.data) {
-            throw new Error("Invalid response from Lanyard API");
-          }
-
-          const transformedData = transformLanyardData(data);
-          setUserData(transformedData);
-          setError(null);
-          has404Error.current = false;
-          useFallback.current = false;
-        } else {
-          // Using fallback - use basic data
-          const fallbackData = createBasicDiscordUser(discordUserId);
-          setUserData(fallbackData);
-          setError(null);
+          throw new Error(`Failed to fetch: ${response.status}`);
         }
+        
+        const data: LanyardResponse = await response.json();
+        
+        if (!data.success || !data.data) {
+          throw new Error("Invalid response from Lanyard API");
+        }
+
+        const transformedData = transformLanyardData(data);
+        setUserData(transformedData);
+        setError(null);
+        has404Error.current = false;
+        useFallback.current = false;
+        setIsLoading(false);
+        return true; // Success, can start polling
       } catch (err) {
         // If error and not using fallback yet, use basic fallback
         if (!useFallback.current) {
+          useFallback.current = true;
+          has404Error.current = true;
+          
+          // Clear interval immediately
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          
           const fallbackData = createBasicDiscordUser(discordUserId);
           setUserData(fallbackData);
           setError(null);
-          useFallback.current = true;
-          // Stop polling when using fallback
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
+          setIsLoading(false);
+          return false; // Don't start polling
         } else {
           setError("Erro ao carregar dados");
           setUserData(null);
+          setIsLoading(false);
+          return false;
         }
-      } finally {
-        setIsLoading(false);
       }
     };
 
-    // Initial fetch
-    fetchDiscordData();
-
-    // Poll every 10 seconds for updates (only if not using fallback)
-    if (!useFallback.current) {
-      intervalRef.current = setInterval(() => {
-        if (!has404Error.current && !useFallback.current) {
-          fetchDiscordData();
-        } else {
-          // Clear interval if we got 404 or using fallback
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
+    // Initial fetch - start polling only after first successful fetch
+    fetchDiscordData().then((shouldPoll) => {
+      // Only start polling if fetch was successful (not 404, not fallback)
+      if (shouldPoll && !intervalRef.current) {
+        intervalRef.current = setInterval(() => {
+          if (!has404Error.current && !useFallback.current) {
+            fetchDiscordData();
+          } else {
+            // Clear interval if we got 404 or using fallback
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
+            }
           }
-        }
-      }, 10000);
-    }
+        }, 10000);
+      }
+    });
 
     return () => {
       if (intervalRef.current) {
