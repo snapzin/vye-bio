@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 
 // Types based on Victims API response
-interface VictimsResponse {
+// The API can return different formats, so we handle both
+interface VictimsResponseSimple {
   id: string;
   username: string;
   discriminator: string;
@@ -9,6 +10,25 @@ interface VictimsResponse {
   banner: string | null;
   bio: string | null;
 }
+
+interface VictimsResponseComplex {
+  id: string;
+  user: {
+    id: string;
+    username: string;
+    global_name?: string | null;
+    display_name?: string | null;
+    discriminator?: string;
+    avatar?: string | null;
+    avatar_url?: string | null;
+  };
+  badges?: Array<any>;
+  connected_accounts?: Array<any>;
+  premium_guild_since?: string | null;
+  [key: string]: any;
+}
+
+type VictimsResponse = VictimsResponseSimple | VictimsResponseComplex;
 
 export interface DiscordUser {
   user: {
@@ -155,19 +175,50 @@ function processAssetImage(imageKey: string | null, applicationId: string | null
 }
 
 function transformVictimsData(victimsData: VictimsResponse): DiscordUser {
-  // If avatar is already a full URL, use it directly
-  // Otherwise, extract hash from URL or use the hash directly
+  // Check if it's the complex format (with user object)
+  if ('user' in victimsData && victimsData.user) {
+    const user = victimsData.user;
+    let avatarUrl: string;
+    
+    if (user.avatar_url) {
+      // Already a full URL
+      avatarUrl = user.avatar_url;
+    } else if (user.avatar) {
+      if (user.avatar.startsWith('http')) {
+        avatarUrl = user.avatar;
+      } else {
+        avatarUrl = getAvatarUrl(user.id, user.avatar);
+      }
+    } else {
+      avatarUrl = getAvatarUrl(user.id, null);
+    }
+
+    return {
+      user: {
+        id: user.id,
+        username: user.username,
+        global_name: user.global_name || user.display_name || user.username,
+        avatar_url: avatarUrl,
+      },
+      status: 'offline',
+      connected_accounts: victimsData.connected_accounts || [],
+      badges: victimsData.badges || [],
+      presence: {
+        status: 'offline',
+        activities: [],
+      },
+    };
+  }
+  
+  // Simple format (direct fields)
   let avatarUrl: string;
   if (victimsData.avatar) {
     if (victimsData.avatar.startsWith('http')) {
-      // Already a full URL, use it directly
       avatarUrl = victimsData.avatar;
     } else {
-      // It's a hash, use getAvatarUrl
       avatarUrl = getAvatarUrl(victimsData.id, victimsData.avatar);
     }
   } else {
-    // No avatar, use default
     avatarUrl = getAvatarUrl(victimsData.id, null);
   }
 
@@ -291,8 +342,15 @@ export const useDiscordData = (discordUserId: string | null) => {
         
         const data: VictimsResponse = await response.json();
         
-        // Validate response structure
-        if (!data || !data.id || !data.username) {
+        // Validate response structure - check both formats
+        const isValid = data && (
+          // Simple format
+          (data.id && 'username' in data && data.username) ||
+          // Complex format
+          (data.id && 'user' in data && data.user && data.user.id && data.user.username)
+        );
+        
+        if (!isValid) {
           console.error('Invalid Victims API response:', data);
           throw new Error("Resposta inválida da API Victims");
         }
