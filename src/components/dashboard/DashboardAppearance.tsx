@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Camera, Loader2, Save, Upload, Image, User, Square, Circle, Palette, X, Layout, AlignLeft, AlignCenter, FileText, Trash2, Music, Link as LinkIcon } from "lucide-react";
+import { Camera, Loader2, Save, Upload, Image, User, Square, Circle, Palette, X, Layout, AlignLeft, AlignCenter, FileText, Trash2, Music, Link as LinkIcon, Volume2, VolumeX } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +30,9 @@ export function DashboardAppearance() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
   const musicInputRef = useRef<HTMLInputElement>(null);
+  const backgroundVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [videoVolume, setVideoVolume] = useState(50);
+  const [isVideoMuted, setIsVideoMuted] = useState(false);
 
   const [formData, setFormData] = useState({
     display_name: profile?.display_name || "",
@@ -94,7 +97,7 @@ export function DashboardAppearance() {
         location: profile.location,
         background_color: profile.background_color,
         background_url: profile.background_url,
-        background_type: profile.background_type as 'solid' | 'image' | undefined,
+        background_type: profile.background_type as 'solid' | 'image' | 'video' | undefined,
         avatar_url: profile.avatar_url,
         avatar_shape: profile.avatar_shape,
         username: profile.username,
@@ -106,6 +109,18 @@ export function DashboardAppearance() {
       });
     }
   }, [profile?.background_url, profile?.background_type, profile?.banner_url, profile?.music_url, profile?.music_title, profile?.music_artist, profile?.music_image_url, setPreviewData]);
+
+  // Control video playback and volume
+  useEffect(() => {
+    if (backgroundVideoRef.current && profile?.background_type === 'video') {
+      const video = backgroundVideoRef.current;
+      video.volume = videoVolume / 100;
+      video.muted = isVideoMuted;
+      video.play().catch(() => {
+        // Autoplay may be blocked, that's okay
+      });
+    }
+  }, [profile?.background_type, profile?.background_url, videoVolume, isVideoMuted]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({
@@ -224,15 +239,19 @@ export function DashboardAppearance() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Detect if it's a video file
+    const isVideo = file.type.startsWith('video/') || file.name.toLowerCase().endsWith('.mp4');
+    const backgroundType = isVideo ? 'video' : 'image';
+
     setUploading('background');
     try {
       const url = await uploadFile(file, 'backgrounds');
       if (url) {
         await updateProfile({ 
           background_url: url,
-          background_type: 'image'
+          background_type: backgroundType
         });
-        toast.success("Plano de fundo atualizado!");
+        toast.success(isVideo ? "Vídeo de fundo atualizado!" : "Plano de fundo atualizado!");
         refreshPreview();
       }
     } catch (error) {
@@ -456,14 +475,14 @@ export function DashboardAppearance() {
 
         {/* Background & Banner */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-          {/* Background Image */}
+          {/* Background Image/Video */}
           <div>
-            <p className="text-sm font-medium text-foreground mb-3">Imagem de Fundo</p>
+            <p className="text-sm font-medium text-foreground mb-3">Imagem/Vídeo de Fundo</p>
             <div 
               onClick={() => backgroundInputRef.current?.click()}
               className="h-32 rounded-xl border-2 border-dashed border-border hover:border-accent/50 cursor-pointer flex flex-col items-center justify-center gap-2 transition-colors group relative overflow-hidden"
               style={{
-                backgroundColor: profile.background_type === 'image' && profile.background_url ? undefined : profile.background_color,
+                backgroundColor: (profile.background_type === 'image' || profile.background_type === 'video') && profile.background_url ? undefined : profile.background_color,
                 backgroundImage: profile.background_type === 'image' && profile.background_url 
                   ? `url(${profile.background_url})` 
                   : undefined,
@@ -471,6 +490,60 @@ export function DashboardAppearance() {
                 backgroundPosition: 'center',
               }}
             >
+              {/* Video player when background_type is 'video' */}
+              {profile.background_type === 'video' && profile.background_url && (
+                <>
+                  <video
+                    ref={backgroundVideoRef}
+                    src={profile.background_url}
+                    loop
+                    muted={isVideoMuted}
+                    playsInline
+                    autoPlay
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ opacity: 0.8 }}
+                  />
+                  {/* Audio controller in top-left corner */}
+                  <div className="absolute top-2 left-2 z-20 flex items-center gap-2 bg-background/90 backdrop-blur-sm rounded-lg p-2 border border-border/50">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsVideoMuted(!isVideoMuted);
+                        if (backgroundVideoRef.current) {
+                          backgroundVideoRef.current.muted = !isVideoMuted;
+                        }
+                      }}
+                      className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-secondary transition-colors"
+                      aria-label={isVideoMuted ? "Ativar áudio" : "Desativar áudio"}
+                      title={isVideoMuted ? "Ativar áudio" : "Desativar áudio"}
+                    >
+                      {isVideoMuted ? (
+                        <VolumeX className="w-4 h-4 text-muted-foreground" />
+                      ) : (
+                        <Volume2 className="w-4 h-4 text-foreground" />
+                      )}
+                    </button>
+                    <div className="w-24">
+                      <Slider
+                        value={[videoVolume]}
+                        onValueChange={(value) => {
+                          const vol = value[0];
+                          setVideoVolume(vol);
+                          if (backgroundVideoRef.current) {
+                            backgroundVideoRef.current.volume = vol / 100;
+                          }
+                        }}
+                        min={0}
+                        max={100}
+                        step={1}
+                        className="w-full"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
               {profile.background_url && (
                 <button
                   type="button"
@@ -488,7 +561,7 @@ export function DashboardAppearance() {
                   <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
                     Drag and drop file here or <span className="text-accent">Choose File</span>
                   </p>
-                  <p className="text-xs text-muted-foreground">.jpeg, .png, .gif, .webp, .jpg</p>
+                  <p className="text-xs text-muted-foreground">.jpeg, .png, .gif, .webp, .jpg, .mp4</p>
                 </>
               )}
               {uploading === 'background' && (
@@ -500,11 +573,11 @@ export function DashboardAppearance() {
             <input
               ref={backgroundInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,video/mp4"
               onChange={handleBackgroundUpload}
               className="hidden"
             />
-            <p className="text-xs text-muted-foreground mt-2">Recommended size: 1920x1080</p>
+            <p className="text-xs text-muted-foreground mt-2">Recommended size: 1920x1080 (imagens ou vídeos MP4)</p>
           </div>
 
           {/* Música */}
