@@ -128,15 +128,19 @@ export function DashboardSidebar({ activeTab, onTabChange, username, isAdmin = f
 
       {/* View Profile Button */}
       <div className="p-3 border-t border-border/50">
-        <a 
-          href={`/${currentUsername || username}`} 
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            const profileUrl = `/${currentUsername || username}`;
+            if (profileUrl && profileUrl !== '/') {
+              window.open(profileUrl, '_blank', 'noopener,noreferrer');
+            }
+          }}
           className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors w-full"
         >
           <ExternalLink className="w-4 h-4" />
           Ver perfil
-        </a>
+        </button>
       </div>
     </aside>
   );
