@@ -259,9 +259,10 @@ const Profile = () => {
   // YouTube player hook - only initialize if using floating player style
   const shouldUseFloatingPlayer = profile?.music_player_style === 'floating';
   const shouldInitYouTube = shouldUseFloatingPlayer && isYouTube && youtubeVideoId;
+  const shouldAutoplay = profile?.music_autoplay !== false; // Default to true if null/undefined
   const youtubePlayer = useYouTubePlayer({
     videoId: shouldInitYouTube ? youtubeVideoId : '',
-    autoplay: shouldInitYouTube ? true : false,
+    autoplay: shouldInitYouTube && shouldAutoplay ? true : false,
     loop: true,
     volume: 50,
     onReady: () => {
@@ -381,8 +382,8 @@ const Profile = () => {
       const handleTimeUpdate = () => setCurrentTime(audioElement.currentTime);
       const handleLoadedMetadata = () => {
         setDuration(audioElement.duration);
-        // Auto-play when metadata is loaded
-        if (!hasTriedAutoplay) {
+        // Auto-play when metadata is loaded (only if autoplay is enabled)
+        if (profile?.music_autoplay !== false && !hasTriedAutoplay) {
           hasTriedAutoplay = true;
           audioElement.play().catch((error) => {
             // Autoplay pode falhar devido a políticas do navegador - isso é normal
@@ -394,7 +395,7 @@ const Profile = () => {
       const handleCanPlay = () => {
         // Tenta tocar quando o áudio estiver pronto (se ainda não estiver tocando)
         // Only autoplay on initial load, not if user has manually paused
-        if (!isPlaying && !hasTriedAutoplay) {
+        if (profile?.music_autoplay !== false && !isPlaying && !hasTriedAutoplay) {
           hasTriedAutoplay = true;
           audioElement.play().catch(() => {
             // Silenciosamente falha se autoplay não for permitido
@@ -402,8 +403,8 @@ const Profile = () => {
         }
       };
       const handleLoadedData = () => {
-        // Última tentativa de autoplay
-        if (!isPlaying && !hasTriedAutoplay) {
+        // Última tentativa de autoplay (only if autoplay is enabled)
+        if (profile?.music_autoplay !== false && !isPlaying && !hasTriedAutoplay) {
           hasTriedAutoplay = true;
           audioElement.play().catch(() => {});
         }

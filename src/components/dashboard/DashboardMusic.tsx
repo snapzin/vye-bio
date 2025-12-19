@@ -25,6 +25,7 @@ export function DashboardMusic() {
     music_url: profile?.music_url || "",
     music_image_url: profile?.music_image_url || "",
     music_player_style: profile?.music_player_style || "card",
+    music_autoplay: profile?.music_autoplay !== false, // Default to true if null/undefined
   });
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export function DashboardMusic() {
         music_url: profile.music_url || "",
         music_image_url: profile.music_image_url || "",
         music_player_style: profile.music_player_style || "card",
+        music_autoplay: profile.music_autoplay !== false, // Default to true if null/undefined
       });
     }
   }, [profile]);
@@ -183,7 +185,10 @@ export function DashboardMusic() {
 
   const handleSave = async () => {
     setSaving(true);
-    const { error } = await updateProfile(formData);
+    const { error } = await updateProfile({
+      ...formData,
+      music_autoplay: formData.music_autoplay,
+    });
     
     if (error) {
       toast.error("Falha ao salvar alterações");
@@ -397,6 +402,24 @@ export function DashboardMusic() {
                 Flutuante
               </button>
             </div>
+          </div>
+
+          {/* Autoplay Toggle */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/30 border border-border/50">
+            <div className="flex-1">
+              <label className="text-sm font-medium text-foreground block mb-1">
+                Reprodução Automática
+              </label>
+              <p className="text-xs text-muted-foreground">
+                A música começará a tocar automaticamente quando alguém visitar seu perfil
+              </p>
+            </div>
+            <Switch
+              checked={formData.music_autoplay}
+              onCheckedChange={(checked) => {
+                setFormData(prev => ({ ...prev, music_autoplay: checked }));
+              }}
+            />
           </div>
         </div>
       </motion.div>

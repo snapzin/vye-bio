@@ -22,11 +22,12 @@ const MusicCard = ({ profile }: MusicCardProps) => {
   
   // Only initialize YouTube player if not using floating style
   const shouldInitYouTube = profile?.music_player_style !== 'floating' && youtubeVideoId;
+  const shouldAutoplay = profile?.music_autoplay !== false; // Default to true if null/undefined
 
   // YouTube player hook - only initialize if not floating
   const youtubePlayer = useYouTubePlayer({
     videoId: shouldInitYouTube ? youtubeVideoId : '',
-    autoplay: shouldInitYouTube ? true : false,
+    autoplay: shouldInitYouTube && shouldAutoplay ? true : false,
     loop: true,
     volume: 50,
     onStateChange: (state) => {
@@ -69,8 +70,8 @@ const MusicCard = ({ profile }: MusicCardProps) => {
     const updateTime = () => setCurrentTime(audio.currentTime);
     const updateDuration = () => {
       setDuration(audio.duration);
-      // Auto-play when metadata is loaded
-      if (!hasTriedAutoplay) {
+      // Auto-play when metadata is loaded (only if autoplay is enabled)
+      if (profile?.music_autoplay !== false && !hasTriedAutoplay) {
         hasTriedAutoplay = true;
         audio.play().catch(() => {
           // Tentaremos novamente no canplay
@@ -95,15 +96,15 @@ const MusicCard = ({ profile }: MusicCardProps) => {
       }
     };
     const handleCanPlay = () => {
-      // Tenta tocar quando o áudio estiver pronto
-      if (!isPlaying && !hasTriedAutoplay) {
+      // Tenta tocar quando o áudio estiver pronto (only if autoplay is enabled)
+      if (profile?.music_autoplay !== false && !isPlaying && !hasTriedAutoplay) {
         hasTriedAutoplay = true;
         audio.play().catch(() => {});
       }
     };
     const handleLoadedData = () => {
-      // Última tentativa de autoplay
-      if (!isPlaying && !hasTriedAutoplay) {
+      // Última tentativa de autoplay (only if autoplay is enabled)
+      if (profile?.music_autoplay !== false && !isPlaying && !hasTriedAutoplay) {
         hasTriedAutoplay = true;
         audio.play().catch(() => {});
       }
