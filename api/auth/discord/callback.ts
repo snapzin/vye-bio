@@ -341,9 +341,26 @@ export default async function handler(
             return v.toString(16);
           });
         }
-        username = (discordUser.global_name || discordUser.username || `user_${discordUser.id.substring(0, 8)}`)
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, '');
+        // Usa o username do Discord como base, mantendo o máximo possível do nome original
+        // Prioriza global_name (nome de exibição), depois username do Discord
+        const discordUsername = discordUser.global_name || discordUser.username;
+        
+        // Sanitiza o username: converte para minúsculas, mantém letras, números, underscore e hífen
+        // Remove apenas caracteres especiais inválidos e espaços
+        if (discordUsername) {
+          username = discordUsername
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '_') // Substitui espaços por underscore
+            .replace(/[^a-z0-9_-]/g, '') // Remove caracteres inválidos
+            .replace(/^[-_]+|[-_]+$/g, '') // Remove underscores e hífens no início/fim
+            .substring(0, 30); // Limita a 30 caracteres
+        }
+        
+        // Se o username resultante estiver vazio ou muito curto, usa fallback
+        if (!username || username.length < 3) {
+          username = `user_${discordUser.id.substring(0, 8)}`;
+        }
 
         // Verifica se o username já existe e adiciona sufixo se necessário
         let finalUsername = username;
