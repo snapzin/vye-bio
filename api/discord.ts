@@ -48,11 +48,11 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Extrair userId da query string
+  let userId: string | null = null;
+  
   try {
-    // Extrair userId da query string
     // No Vercel, pode vir como req.query ou na URL
-    let userId: string | null = null;
-    
     if (req.query?.userId) {
       userId = Array.isArray(req.query.userId) ? req.query.userId[0] : req.query.userId;
     } else if (req.url) {
@@ -78,81 +78,66 @@ export default async function handler(
     const victimsUrl = `https://api.victims.bio/discord/user/${userId}`;
     console.log('Fetching from Victims API:', victimsUrl);
     
-    // Criar AbortController para timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos
-    
-    try {
-      const victimsResponse = await fetch(victimsUrl, {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Vye-Bio/1.0',
-        },
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
+    const victimsResponse = await fetch(victimsUrl, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Vye-Bio/1.0',
+      },
+    });
 
       console.log('Victims API response status:', victimsResponse.status);
 
       if (!victimsResponse.ok) {
-      // Se 404, retornar null para usar fallback no frontend
-      if (victimsResponse.status === 404) {
-        console.log('User not found in Victims API');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Content-Type', 'application/json');
-        return res.status(404).json({ error: 'Usuário não encontrado' });
-      }
+        // Se 404, retornar null para usar fallback no frontend
+        if (victimsResponse.status === 404) {
+          console.log('User not found in Victims API');
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Content-Type', 'application/json');
+          return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
 
-      const errorText = await victimsResponse.text();
-      console.error('Victims API error:', {
-        status: victimsResponse.status,
-        statusText: victimsResponse.statusText,
-        errorText: errorText.substring(0, 200)
-      });
+        const errorText = await victimsResponse.text();
+        console.error('Victims API error:', {
+          status: victimsResponse.status,
+          statusText: victimsResponse.statusText,
+          errorText: errorText.substring(0, 200)
+        });
         throw new Error(
           `Victims API error: ${victimsResponse.status} - ${errorText.substring(0, 100)}`
         );
       }
 
       const data = await victimsResponse.json();
-    console.log('Victims API response received, validating...');
+      console.log('Victims API response received, validating...');
 
-    // Validar resposta
-    const isValid = data && (
-      // Simple format
-      (data.id && 'username' in data && data.username) ||
-      // Complex format
-      (data.id && 'user' in data && data.user && data.user.id && data.user.username)
-    );
+      // Validar resposta
+      const isValid = data && (
+        // Simple format
+        (data.id && 'username' in data && data.username) ||
+        // Complex format
+        (data.id && 'user' in data && data.user && data.user.id && data.user.username)
+      );
 
-    if (!isValid) {
-      console.error('Invalid Victims API response structure:', {
-        hasId: !!data?.id,
-        hasUsername: !!(data?.username || data?.user?.username),
-        dataKeys: data ? Object.keys(data) : null
-      });
-      throw new Error('Resposta inválida da API Victims');
-    }
+      if (!isValid) {
+        console.error('Invalid Victims API response structure:', {
+          hasId: !!data?.id,
+          hasUsername: !!(data?.username || data?.user?.username),
+          dataKeys: data ? Object.keys(data) : null
+        });
+        throw new Error('Resposta inválida da API Victims');
+      }
 
       console.log('Victims API response validated successfully');
 
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Content-Type', 'application/json');
       return res.status(200).json(data);
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId);
-      if (fetchError.name === 'AbortError') {
-        throw new Error('Timeout ao conectar com a API do Victims');
-      }
-      throw fetchError;
-    }
   } catch (error: any) {
     console.error('Error in Discord API proxy:', {
       message: error?.message,
       stack: error?.stack,
       name: error?.name,
-      userId: userId
+      userId: userId || 'unknown'
     });
     const statusCode = getStatusCode(error);
     const errorResponse = {
