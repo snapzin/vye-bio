@@ -107,40 +107,52 @@ export default async function handler(
         );
       }
 
-      const data = await victimsResponse.json();
+      let data;
+      try {
+        data = await victimsResponse.json();
+      } catch (parseError: any) {
+        console.error('Error parsing JSON from Victims API:', parseError);
+        const textResponse = await victimsResponse.text();
+        console.error('Raw response:', textResponse.substring(0, 500));
+        throw new Error('Resposta inválida da API Victims (não é JSON válido)');
+      }
+
       console.log('Victims API response received:', JSON.stringify(data).substring(0, 500));
       console.log('Victims API response received, validating...');
 
-      // Validar resposta - formato simples
-      // Aceita se tiver id e username (mesmo que vazio)
-      const isSimpleFormat = data && 
-        data.id && 
-        (typeof data.id === 'string' || typeof data.id === 'number') &&
-        'username' in data && 
-        (data.username === null || data.username === undefined || typeof data.username === 'string');
+      // Validação mais flexível - aceita qualquer objeto com id
+      // A API do Victims pode retornar formatos diferentes
+      if (!data || typeof data !== 'object') {
+        console.error('Invalid Victims API response: not an object', {
+          dataType: typeof data,
+          data: String(data).substring(0, 200)
+        });
+        throw new Error('Resposta inválida da API Victims (não é um objeto)');
+      }
 
-      // Validar resposta - formato complexo
-      const isComplexFormat = data && 
-        data.id && 
-        (typeof data.id === 'string' || typeof data.id === 'number') &&
-        'user' in data && 
-        data.user && 
-        data.user.id && 
-        (data.user.username === null || data.user.username === undefined || typeof data.user.username === 'string');
+      // Verificar se tem id (pode ser string ou número)
+      const hasId = data.id !== null && data.id !== undefined;
+      
+      // Verificar se tem username direto ou dentro de user
+      const hasUsername = 
+        ('username' in data && (data.username !== null && data.username !== undefined)) ||
+        (data.user && data.user.username !== null && data.user.username !== undefined);
 
-      const isValid = isSimpleFormat || isComplexFormat;
-
-      if (!isValid) {
-        console.error('Invalid Victims API response structure:', {
-          hasId: !!data?.id,
-          idType: typeof data?.id,
-          hasUsername: !!(data?.username || data?.user?.username),
-          usernameValue: data?.username || data?.user?.username,
-          usernameType: typeof (data?.username || data?.user?.username),
-          dataKeys: data ? Object.keys(data) : null,
+      // Aceitar se tiver pelo menos o id (username pode estar ausente em alguns casos)
+      if (!hasId) {
+        console.error('Invalid Victims API response: missing id', {
+          dataKeys: Object.keys(data),
           fullData: JSON.stringify(data).substring(0, 1000)
         });
-        throw new Error('Resposta inválida da API Victims');
+        throw new Error('Resposta inválida da API Victims (falta id)');
+      }
+
+      // Se não tiver username, ainda assim aceitar (pode ser um usuário sem username)
+      if (!hasUsername) {
+        console.warn('Victims API response missing username, but accepting anyway', {
+          dataKeys: Object.keys(data),
+          hasUser: !!data.user
+        });
       }
 
       console.log('Victims API response validated successfully');
