@@ -108,21 +108,37 @@ export default async function handler(
       }
 
       const data = await victimsResponse.json();
+      console.log('Victims API response received:', JSON.stringify(data).substring(0, 500));
       console.log('Victims API response received, validating...');
 
-      // Validar resposta
-      const isValid = data && (
-        // Simple format
-        (data.id && 'username' in data && data.username) ||
-        // Complex format
-        (data.id && 'user' in data && data.user && data.user.id && data.user.username)
-      );
+      // Validar resposta - formato simples
+      // Aceita se tiver id e username (mesmo que vazio)
+      const isSimpleFormat = data && 
+        data.id && 
+        (typeof data.id === 'string' || typeof data.id === 'number') &&
+        'username' in data && 
+        (data.username === null || data.username === undefined || typeof data.username === 'string');
+
+      // Validar resposta - formato complexo
+      const isComplexFormat = data && 
+        data.id && 
+        (typeof data.id === 'string' || typeof data.id === 'number') &&
+        'user' in data && 
+        data.user && 
+        data.user.id && 
+        (data.user.username === null || data.user.username === undefined || typeof data.user.username === 'string');
+
+      const isValid = isSimpleFormat || isComplexFormat;
 
       if (!isValid) {
         console.error('Invalid Victims API response structure:', {
           hasId: !!data?.id,
+          idType: typeof data?.id,
           hasUsername: !!(data?.username || data?.user?.username),
-          dataKeys: data ? Object.keys(data) : null
+          usernameValue: data?.username || data?.user?.username,
+          usernameType: typeof (data?.username || data?.user?.username),
+          dataKeys: data ? Object.keys(data) : null,
+          fullData: JSON.stringify(data).substring(0, 1000)
         });
         throw new Error('Resposta inválida da API Victims');
       }
