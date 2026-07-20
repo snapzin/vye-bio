@@ -128,6 +128,7 @@ export function sanitizeString(input: string): string {
   }
 
   // Remove caracteres de controle
+  // eslint-disable-next-line no-control-regex
   return input
     .replace(/[\x00-\x1F\x7F]/g, '')
     .trim()

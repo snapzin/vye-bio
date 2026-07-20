@@ -12,7 +12,6 @@ import {
   Star,
   ArrowRight,
   X,
-  Infinity,
   Gift,
   Heart,
   TrendingUp

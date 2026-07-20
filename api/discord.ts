@@ -76,8 +76,7 @@ export default async function handler(
 
     // Fazer requisição para a API do Victims
     const victimsUrl = `https://api.victims.bio/discord/user/${userId}`;
-    console.log('Fetching from Victims API:', victimsUrl);
-    
+
     const victimsResponse = await fetch(victimsUrl, {
       headers: {
         'Accept': 'application/json',
@@ -85,12 +84,9 @@ export default async function handler(
       },
     });
 
-      console.log('Victims API response status:', victimsResponse.status);
-
       if (!victimsResponse.ok) {
         // Se 404, retornar null para usar fallback no frontend
         if (victimsResponse.status === 404) {
-          console.log('User not found in Victims API');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.setHeader('Content-Type', 'application/json');
           return res.status(404).json({ error: 'Usuário não encontrado' });
@@ -116,9 +112,6 @@ export default async function handler(
         console.error('Raw response:', textResponse.substring(0, 500));
         throw new Error('Resposta inválida da API Victims (não é JSON válido)');
       }
-
-      console.log('Victims API response received:', JSON.stringify(data).substring(0, 500));
-      console.log('Victims API response received, validating...');
 
       // Validação mais flexível - aceita qualquer objeto com id
       // A API do Victims pode retornar formatos diferentes
@@ -154,8 +147,6 @@ export default async function handler(
           hasUser: !!data.user
         });
       }
-
-      console.log('Victims API response validated successfully');
 
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Content-Type', 'application/json');

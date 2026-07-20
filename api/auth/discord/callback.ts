@@ -72,13 +72,6 @@ export default async function handler(
 ) {
   // Wrapper global de tratamento de erros para evitar crashes não capturados
   try {
-    // Log inicial para debug
-    console.log('Discord callback handler started', {
-      method: req.method,
-      hasCode: !!req.query.code,
-      hasError: !!req.query.error,
-    });
-
     // Handle CORS preflight
     if (req.method === 'OPTIONS') {
       res.setHeader('Access-Control-Allow-Origin', '*');
@@ -120,22 +113,6 @@ export default async function handler(
     const SUPABASE_ANON_KEY = cleanEnv(process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY);
     // Verificar JWT_SECRET também
     const JWT_SECRET = cleanEnv(process.env.JWT_SECRET || process.env.VITE_JWT_SECRET);
-
-    // Log seguro (não imprime chave). URL não é segredo — mostramos só o host.
-    const supabaseHost = SUPABASE_URL ? (() => {
-      try { return new URL(SUPABASE_URL).host; } catch { return 'invalid-url'; }
-    })() : undefined;
-
-    console.log('Environment variables check:', {
-      hasDiscordClientId: !!DISCORD_CLIENT_ID,
-      hasDiscordClientSecret: !!DISCORD_CLIENT_SECRET,
-      hasDiscordRedirectUri: !!DISCORD_REDIRECT_URI,
-      hasSupabaseUrl: !!SUPABASE_URL,
-      hasSupabaseKey: !!SUPABASE_ANON_KEY,
-      hasJwtSecret: !!JWT_SECRET,
-      supabaseHost,
-    });
-
 
     if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
       console.error('Discord credentials missing');
@@ -204,24 +181,6 @@ export default async function handler(
     }
 
     try {
-      // Log antes de fazer a requisição (mascarar valores sensíveis)
-      console.log('Exchanging code for token:', {
-        redirectUri: DISCORD_REDIRECT_URI,
-        redirectUriLength: DISCORD_REDIRECT_URI?.length,
-        redirectUriHasSpaces: DISCORD_REDIRECT_URI?.includes(' '),
-        redirectUriHasEscapedNewlines: /\\r\\n|\\n|\\r/.test(DISCORD_REDIRECT_URI || ''),
-        hasCode: !!req.query.code,
-        codeLength: req.query.code?.toString().length,
-        clientId: DISCORD_CLIENT_ID ? `${DISCORD_CLIENT_ID.substring(0, 4)}...${DISCORD_CLIENT_ID.substring(DISCORD_CLIENT_ID.length - 4)}` : 'MISSING',
-        clientIdLength: DISCORD_CLIENT_ID?.length,
-        clientIdHasSpaces: DISCORD_CLIENT_ID?.includes(' '),
-        clientIdHasEscapedNewlines: /\\r\\n|\\n|\\r/.test(DISCORD_CLIENT_ID || ''),
-        clientSecret: DISCORD_CLIENT_SECRET ? `${DISCORD_CLIENT_SECRET.substring(0, 4)}...${DISCORD_CLIENT_SECRET.substring(DISCORD_CLIENT_SECRET.length - 4)}` : 'MISSING',
-        clientSecretLength: DISCORD_CLIENT_SECRET?.length,
-        clientSecretHasSpaces: DISCORD_CLIENT_SECRET?.includes(' '),
-        clientSecretHasEscapedNewlines: /\\r\\n|\\n|\\r/.test(DISCORD_CLIENT_SECRET || ''),
-      });
-      
       // Troca o código por um token de acesso
       const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
         method: 'POST',
@@ -289,8 +248,6 @@ export default async function handler(
 
       const discordUser: DiscordUser = await userResponse.json();
 
-      console.log('Discord user fetched:', { id: discordUser.id, username: discordUser.username });
-
     try {
       // Conecta ao Supabase apenas como banco de dados (sem auth)
       const { createClient } = await import('@supabase/supabase-js');
@@ -301,8 +258,7 @@ export default async function handler(
       }
       
       const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      console.log('Supabase client created');
-      
+
       // Busca usuário existente pelo discord_user_id
       const { data: existingProfile } = await supabase
         .from('profiles')
@@ -378,8 +334,7 @@ export default async function handler(
         }
 
         // Cria o perfil diretamente
-        console.log('Creating profile:', { userId, username: finalUsername });
-        const { data: profileData, error: profileError } = await supabase
+        const { error: profileError } = await supabase
           .from('profiles')
           .insert({
             user_id: userId,
@@ -403,25 +358,16 @@ export default async function handler(
           });
           return res.redirect(`/?error=profile_creation_failed&details=${encodeURIComponent(profileError.message || 'Unknown error')}`);
         }
-        
-        console.log('Profile created successfully:', profileData);
       }
 
       // Gera um JWT token próprio usando função centralizada
       let token: string;
       try {
-        console.log('Creating JWT token for user:', { userId, discordId: discordUser.id });
-        console.log('JWT_SECRET check before createToken:', { 
-          hasJwtSecret: !!JWT_SECRET,
-          jwtSecretLength: JWT_SECRET?.length || 0,
-          jwtSecretPreview: JWT_SECRET ? `${JWT_SECRET.substring(0, 4)}...` : 'undefined'
-        });
         token = createToken({
           userId,
           discordId: discordUser.id,
           email: discordUser.email || undefined,
         });
-        console.log('JWT token created successfully');
       } catch (tokenError: any) {
         console.error('Error creating JWT token:', tokenError);
         console.error('Token error details:', {
@@ -455,7 +401,6 @@ export default async function handler(
 
       // Redireciona para o frontend com o token JWT
       try {
-        console.log('Redirecting to frontend with token');
         return res.redirect(`/auth/callback?token=${encodeURIComponent(token)}&discord_id=${discordUser.id}`);
       } catch (redirectError: any) {
         console.error('Error redirecting to frontend:', redirectError);

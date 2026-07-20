@@ -114,10 +114,7 @@ export default async function handler(
   } else {
     console.warn('API Key não encontrada. Verifique as variáveis de ambiente no Vercel.');
   }
-  
-  // Log leve (não expõe key)
-  console.log('Proxy request:', { pathString, method: req.method, hasApiKey: !!apiKey });
-  
+
   try {
     const response = await fetch(valorantApiUrl, {
       method: req.method || 'GET',

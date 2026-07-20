@@ -5,6 +5,8 @@
 
 import type { Plugin } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'http';
+import fs from 'fs';
+import path from 'path';
 
 interface VercelRequest {
   method?: string;
@@ -93,8 +95,6 @@ export function vitePluginApi(): Plugin {
       // Carregar variáveis de ambiente do arquivo .env manualmente
       // O Vite só carrega VITE_* por padrão, mas precisamos de todas
       try {
-        const fs = require('fs');
-        const path = require('path');
         const root = config.root || process.cwd();
         
         // Tentar carregar .env.local primeiro, depois .env

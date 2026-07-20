@@ -36,8 +36,7 @@ export function createToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
   try {
     // Verificar JWT_SECRET antes de continuar
     const secret = getJWTSecret();
-    console.log('JWT_SECRET retrieved successfully, length:', secret.length);
-    
+
   const header = {
     alg: 'HS256',
     typ: 'JWT',
